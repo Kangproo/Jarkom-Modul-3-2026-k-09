@@ -1,0 +1,47 @@
+================================================================
+PANDUAN PRAKTEK & DEMO: SOAL 8
+Topik: Packet Capture 4 Tahapan DHCP (DORA) & Verifikasi giaddr
+================================================================
+
+[ TUJUAN SOAL ]
+1. Merekam transaksi DHCP saat klien meminta lease baru.
+2. Memperlihatkan urutan transaksi 4 jabat tangan:
+   DHCPDISCOVER -> DHCPOFFER -> DHCPREQUEST -> DHCPACK
+3. Memvalidasi nilai field giaddr sesuai interface jichi penerima request.
+
+----------------------------------------------------------------
+SKENARIO DEMO LANGKAH DEMI LANGKAH
+----------------------------------------------------------------
+
+LANGKAH 1: JALANKAN CAPTURE DI SERVER
+Buka terminal node: tengen
+Ketik perintah berikut (terminal akan menunggu paket):
+tcpdump -i eth0 -n port 67 or port 68 -vvv
+
+LANGKAH 2: TRIGGER REQUEST DI KLIEN
+Buka terminal node: itadori (jangan tutup terminal tengen)
+Ketik perintah untuk melepaskan dan meminta IP baru:
+killall udhcpc 2>/dev/null
+ip addr flush dev eth0
+udhcpc -i eth0 -c itadori -H itadori
+
+LANGKAH 3: LIHAT HASIL DI TERMINAL TENGEN
+Kembali ke terminal tengen dan amati output tcpdump:
+1. DHCPDISCOVER: Paket pertama dari client melalui relay.
+2. DHCPOFFER: Tawaran IP dari tengen (10.68.4.10).
+3. DHCPREQUEST: Permintaan resmi klien.
+4. DHCPACK: Konfirmasi persetujuan dari server.
+
+Perhatikan baris:
+giaddr: 10.68.2.1
+-> Ini adalah alamat antarmuka eth2 router jichi!
+
+----------------------------------------------------------------
+POIN PENJELASAN UNTUK DIUCAPKAN KE ASISTEN
+----------------------------------------------------------------
+"Melalui tcpdump pada antarmuka eth0 tengen, kami mendokumentasikan proses
+lengkap 4 jabat tangan DHCP: Discover, Offer, Request, dan Ack.
+Field giaddr terisi 10.68.2.1, yaitu IP eth2 jichi tempat itadori terhubung.
+Field giaddr inilah yang menjadi kunci bagi server tengen untuk mengetahui
+bahwa request datang dari Network 2, sehingga server memberikan penawaran
+dari Pool 1 Network 2."

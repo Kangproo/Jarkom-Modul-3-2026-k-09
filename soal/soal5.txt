@@ -1,0 +1,70 @@
+================================================================
+PANDUAN PRAKTEK & DEMO: SOAL 5
+Topik: Pengaturan Lease Time Berbeda pada Network 3 (Divisi B)
+================================================================
+
+[ TUJUAN SOAL ]
+1. Short lease 30 menit (1800 detik): ino & kusakabe (Pool 10.68.3.10 - 10.68.3.89).
+2. Long lease 12 jam (43200 detik): miwa (Pool 10.68.3.100 - 10.68.3.199).
+3. Memberikan opsi DNS 10.68.1.2, 10.68.1.3, dan domain-search k09.com.
+
+----------------------------------------------------------------
+LANGKAH 1: KONFIGURASI PADA tengen
+----------------------------------------------------------------
+Buka terminal node: tengen
+Tambahkan deklarasi class short/long lease pada dhcpd.conf:
+
+cat >> /etc/dhcp/dhcpd.conf << 'EOF'
+class "short-lease" {
+    match if (option dhcp-client-identifier = "ino") or
+             (option host-name = "ino") or
+             (option dhcp-client-identifier = "kusakabe") or
+             (option host-name = "kusakabe");
+}
+
+class "long-lease" {
+    match if (option dhcp-client-identifier = "miwa") or
+             (option host-name = "miwa");
+}
+EOF
+
+# Pada blok subnet 10.68.3.0 di dhcpd.conf, pasang pool-nya:
+# pool { allow members of "short-lease"; range 10.68.3.10 10.68.3.89; default-lease-time 1800; max-lease-time 1800; }
+# pool { allow members of "long-lease"; range 10.68.3.100 10.68.3.199; default-lease-time 43200; max-lease-time 43200; }
+
+service isc-dhcp-server restart
+
+
+----------------------------------------------------------------
+LANGKAH 2: EKSEKUSI DI KLIEN NETWORK 3
+----------------------------------------------------------------
+Buka terminal klien masing-masing dan jalankan:
+
+[ ino ]      : killall udhcpc 2>/dev/null; udhcpc -i eth0 -c ino -H ino
+[ kusakabe ] : killall udhcpc 2>/dev/null; udhcpc -i eth0 -c kusakabe -H kusakabe
+[ miwa ]     : killall udhcpc 2>/dev/null; udhcpc -i eth0 -c miwa -H miwa
+
+
+----------------------------------------------------------------
+LANGKAH 3: CARA DEMO KE ASISTEN (VERIFIKASI)
+----------------------------------------------------------------
+1. Cek IP di klien:
+   - Di ino/kusakabe: ip addr show eth0 -> Harus dapat 10.68.3.10 - 10.68.3.89
+   - Di miwa:         ip addr show eth0 -> Harus dapat 10.68.3.100 - 10.68.3.199
+
+2. Cek masa sewa (lease time) di tengen:
+   cat /var/lib/dhcp/dhcpd.leases | grep -E "lease|starts|ends|client-hostname"
+   -> Tunjukkan ke asisten:
+      - ino/kusakabe: selisih 'starts' dan 'ends' adalah 1800 detik (30 menit).
+      - miwa: selisih 'starts' dan 'ends' adalah 43200 detik (12 jam).
+
+3. Cek DNS resolver di salah satu klien:
+   cat /etc/resolv.conf
+   -> Tunjukkan: ada nameserver 10.68.1.2, 10.68.1.3 dan search k09.com.
+
+[ POIN PENJELASAN UNTUK DIUCAPKAN KE ASISTEN ]
+"Di Network 3, kami membedakan waktu sewa berdasarkan kelas klien.
+ino dan kusakabe dikelompokkan ke kelas 'short-lease' dengan durasi 1800 detik
+agar alamat cepat didaur ulang. Sedangkan miwa masuk kelas 'long-lease' dengan
+durasi 43200 detik untuk stabilitas sesi. Seluruh klien di subnet ini juga
+otomatis menerima konfigurasi DNS server dan domain search k09.com."

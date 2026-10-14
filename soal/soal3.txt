@@ -1,0 +1,50 @@
+================================================================
+PANDUAN PRAKTEK & DEMO: SOAL 3
+Topik: Konfigurasi DHCP Relay pada router jichi
+================================================================
+
+[ TUJUAN SOAL ]
+1. Memasang isc-dhcp-relay pada jichi.
+2. Mengarahkan relay ke server tengen (10.68.4.10).
+3. Mendengarkan request dari eth2 (Network 2) dan eth3 (Network 3).
+4. Membuktikan bahwa klien dari subnet remote berhasil memperoleh lease via relay.
+
+----------------------------------------------------------------
+LANGKAH 1: KONFIGURASI PADA jichi
+----------------------------------------------------------------
+Buka terminal node: jichi
+Copy-paste perintah berikut langsung ke terminal:
+
+# 1. Update & install isc-dhcp-relay
+apt-get update
+apt-get install -y isc-dhcp-relay
+
+# 2. Tentukan Server tujuan dan Interface yang didengarkan
+cat > /etc/default/isc-dhcp-relay << 'EOF'
+SERVERS="10.68.4.10"
+INTERFACES="eth2 eth3"
+OPTIONS=""
+EOF
+
+# 3. Restart service Relay
+service isc-dhcp-relay restart
+
+
+----------------------------------------------------------------
+LANGKAH 2: CARA DEMO KE ASISTEN (VERIFIKASI)
+----------------------------------------------------------------
+1. Di terminal jichi, tunjukkan status relay:
+   service isc-dhcp-relay status
+   -> Tunjukkan ke asisten: status "active (running)".
+
+2. Di terminal klien Network 2 (misal itadori), jalankan permintaan IP:
+   udhcpc -i eth0 -n
+   ip addr show eth0
+   -> Tunjukkan ke asisten: itadori berhasil menerima IP melalui relay.
+
+[ POIN PENJELASAN UNTUK DIUCAPKAN KE ASISTEN ]
+"Paket broadcast DHCPDISCOVER dari klien di Network 2 dan 3 tidak dapat
+menyeberangi router secara langsung. Oleh karena itu, jichi kami pasang
+isc-dhcp-relay. Relay akan menangkap broadcast di eth2 dan eth3, menyisipkan
+IP antarmukanya ke field giaddr, lalu meneruskannya secara unicast ke tengen
+di 10.68.4.10."

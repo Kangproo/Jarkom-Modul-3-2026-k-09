@@ -1,0 +1,52 @@
+================================================================
+PANDUAN PRAKTEK & DEMO: SOAL 9
+Topik: Simulasi Gangguan DHCP Relay & Pemulihan Layanan
+================================================================
+
+[ TUJUAN SOAL ]
+1. Menghentikan service DHCP Relay pada jichi.
+2. Memaksa salah satu klien meminta lease baru dan mencatat gejalanya (gagal/timeout).
+3. Memulihkan service relay dan membuktikan klien kembali mendapatkan IP.
+
+----------------------------------------------------------------
+SKENARIO DEMO LANGKAH DEMI LANGKAH
+----------------------------------------------------------------
+
+FASE 1: MATIKAN RELAY PADA jichi
+Buka terminal node: jichi
+Jalankan:
+service isc-dhcp-relay stop
+service isc-dhcp-relay status
+-> Tunjukkan ke asisten: status relay sudah STOPPED / inactive.
+
+FASE 2: UJI KEGAGALAN DI KLIEN
+Buka terminal node: itadori
+Jalankan:
+killall udhcpc 2>/dev/null
+ip addr flush dev eth0
+udhcpc -i eth0 -t 3 -T 2
+-> Tunjukkan ke asisten:
+   Output menampilkan: "udhcpc: sending discover..." berulang kali lalu TIMEOUT.
+   Klien TIDAK mendapatkan alamat IP.
+
+FASE 3: PULIHKAN RELAY PADA jichi
+Kembali ke terminal node: jichi
+Jalankan:
+service isc-dhcp-relay start
+service isc-dhcp-relay status
+-> Tunjukkan ke asisten: status relay kembali RUNNING / active.
+
+FASE 4: KLIEN MENCOBA KEMBALI
+Kembali ke terminal node: itadori
+Jalankan:
+udhcpc -i eth0 -c itadori -H itadori
+ip addr show eth0
+-> Tunjukkan ke asisten: Klien langsung berhasil memperoleh IP dari Pool 1 semula.
+
+----------------------------------------------------------------
+POIN PENJELASAN UNTUK DIUCAPKAN KE ASISTEN
+----------------------------------------------------------------
+"Ketika service relay pada jichi dimatikan, permintaan discover dari klien
+tidak dapat menyeberang ke Data Center sehingga klien mengalami timeout.
+Begitu service relay dihidupkan kembali, komunikasi peminjaman IP pulih
+seketika dan klien memperoleh kembali alamat IP yang sah dari pool yang sesuai."

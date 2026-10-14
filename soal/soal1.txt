@@ -1,0 +1,110 @@
+================================================================
+PANDUAN PRAKTEK & DEMO: SOAL 1
+Topik: Konfigurasi Router jichi & Penetapan IP Statis Infrastruktur
+================================================================
+
+[ TUJUAN SOAL ]
+1. Mengonfigurasi router jichi: eth0 (WAN/NAT), eth1-eth4 (Gateway Net 1-4).
+2. Mengaktifkan IPv4 Forwarding dan Source NAT (MASQUERADE).
+3. Menyetel IP statis untuk seluruh host infrastruktur (DMZ & Data Center).
+4. Membuktikan konektivitas ke gateway dan akses internet.
+
+
+================================================================
+METODE UTAMA (SANGAT DIREKOMENDASIKAN - TAHAN RESTART)
+================================================================
+Gunakan menu GNS3: Klik Kanan Node -> "Edit network configuration"
+(Semua konfigurasi lengkap tersimpan di file: network-config.txt)
+
+1. Pada node jichi:
+   Klik kanan jichi -> Edit network configuration -> Paste konfigurasi ini:
+----------------------------------------------------------------
+auto lo
+iface lo inet loopback
+
+auto eth0
+iface eth0 inet dhcp
+    up sysctl -w net.ipv4.ip_forward=1
+    up iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+    up service isc-dhcp-relay start
+
+auto eth1
+iface eth1 inet static
+    address 10.68.1.1
+    netmask 255.255.255.0
+
+auto eth2
+iface eth2 inet static
+    address 10.68.2.1
+    netmask 255.255.255.0
+
+auto eth3
+iface eth3 inet static
+    address 10.68.3.1
+    netmask 255.255.255.0
+
+auto eth4
+iface eth4 inet static
+    address 10.68.4.1
+    netmask 255.255.255.0
+----------------------------------------------------------------
+
+2. Pada node host infrastruktur (utahime, shoko, gojo, tengen, geto, dll):
+   Klik kanan masing-masing node -> Edit network configuration:
+   Contoh pada tengen:
+----------------------------------------------------------------
+auto lo
+iface lo inet loopback
+
+auto eth0
+iface eth0 inet static
+    address 10.68.4.10
+    netmask 255.255.255.0
+    gateway 10.68.4.1
+    up echo "nameserver 192.168.122.1" > /etc/resolv.conf
+    up service isc-dhcp-server start
+----------------------------------------------------------------
+(Daftar lengkap untuk utahime, shoko, geto, maki, dll. bisa dilihat di network-config.txt)
+
+
+================================================================
+METODE ALTERNATIF: VIA TERMINAL LANGSUNG (RUNTIME)
+================================================================
+Jika ingin langsung eksekusi cepat di terminal tanpa restart:
+
+Di terminal jichi:
+echo "nameserver 192.168.122.1" > /etc/resolv.conf
+ip addr add 10.68.1.1/24 dev eth1 && ip link set eth1 up
+ip addr add 10.68.2.1/24 dev eth2 && ip link set eth2 up
+ip addr add 10.68.3.1/24 dev eth3 && ip link set eth3 up
+ip addr add 10.68.4.1/24 dev eth4 && ip link set eth4 up
+echo 1 > /proc/sys/net/ipv4/ip_forward
+iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+
+Di terminal host (contoh tengen):
+ip addr add 10.68.4.10/24 dev eth0 && ip link set eth0 up
+ip route add default via 10.68.4.1
+echo "nameserver 192.168.122.1" > /etc/resolv.conf
+
+
+================================================================
+CARA DEMO KE ASISTEN (VERIFIKASI)
+================================================================
+1. Di terminal jichi, jalankan:
+   ip -br a
+   cat /proc/sys/net/ipv4/ip_forward
+   iptables -t nat -L POSTROUTING -n -v
+   -> Tunjukkan ke asisten: IP eth0-eth4 terpasang, ip_forward=1, NAT aktif.
+
+2. Di terminal salah satu host (misal tengen atau utahime), jalankan:
+   ping -c 3 10.68.4.1        # tes ping gateway
+   ping -c 3 google.com       # tes ping internet via NAT
+   -> Tunjukkan ke asisten: 0% packet loss ke gateway dan internet.
+
+[ POIN PENJELASAN UNTUK DIUCAPKAN KE ASISTEN ]
+"Pada Soal 1, kami mengonfigurasi jichi sebagai router utama dengan 5 antarmuka.
+Kami mengaktifkannya secara permanen di network configuration (/etc/network/interfaces)
+lengkap dengan sysctl net.ipv4.ip_forward=1 dan iptables POSTROUTING MASQUERADE.
+Dengan begitu, seluruh konfigurasi antarmuka, routing, dan NAT akan selalu
+bertahan otomatis sekalipun node di-restart. Host infrastruktur juga kami
+konfigurasikan IP statis dengan default gateway mengarah ke router jichi."

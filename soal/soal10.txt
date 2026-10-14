@@ -1,0 +1,60 @@
+================================================================
+PANDUAN PRAKTEK & DEMO: SOAL 10
+Topik: Autostart Layanan & Persistensi Pasca Reboot
+================================================================
+
+[ TUJUAN SOAL ]
+1. Mengaktifkan autostart DHCP Server di tengen dan DHCP Relay di jichi.
+2. Me-restart kedua node di GNS3.
+3. Memverifikasi status layanan, IP interface, gateway, dan konektivitas klien tetap aktif.
+
+----------------------------------------------------------------
+LANGKAH 1: PASTIKAN AUTOSTART SUDAH DIAKTIFKAN
+----------------------------------------------------------------
+Di jichi:
+update-rc.d isc-dhcp-relay defaults 2>/dev/null || systemctl enable isc-dhcp-relay 2>/dev/null
+
+Di tengen:
+update-rc.d isc-dhcp-server defaults 2>/dev/null || systemctl enable isc-dhcp-server 2>/dev/null
+
+
+----------------------------------------------------------------
+LANGKAH 2: RESTART NODE DI GNS3
+----------------------------------------------------------------
+Di layar topologi GNS3:
+1. Klik kanan node jichi  -> Stop, lalu Start.
+2. Klik kanan node tengen -> Stop, lalu Start.
+
+
+----------------------------------------------------------------
+LANGKAH 3: VERIFIKASI SETELAH NODE MENYALA KEMBALI
+----------------------------------------------------------------
+1. Di terminal jichi (SETELAH RESTART):
+   service isc-dhcp-relay status
+   ip -br a
+   cat /proc/sys/net/ipv4/ip_forward
+   iptables -t nat -L POSTROUTING -n -v
+   -> Tunjukkan ke asisten: Layanan relay langsung RUNNING otomatis,
+      seluruh IP eth0-eth4 utuh, ip_forward bernilai 1, dan NAT aktif.
+
+2. Di terminal tengen (SETELAH RESTART):
+   service isc-dhcp-server status
+   ip addr show eth0
+   -> Tunjukkan ke asisten: Layanan DHCP Server langsung ACTIVE,
+      dan IP 10.68.4.10 tetap terpasang tanpa perlu start manual.
+
+3. Di terminal salah satu klien (misal miwa atau zenin):
+   udhcpc -i eth0 -n
+   ip addr show eth0
+   -> Tunjukkan ke asisten: Klien tetap sukses memperbarui sewa (renew)
+      dan memperoleh IP yang valid sesuai pool.
+
+----------------------------------------------------------------
+POIN PENJELASAN UNTUK DIUCAPKAN KE ASISTEN
+----------------------------------------------------------------
+"Untuk menjamin pemulihan bencana pasca reboot, kami menyimpan seluruh konfigurasi
+IP dan rute ke /etc/network/interfaces, parameter forwarding ke /etc/sysctl.conf,
+serta mendaftarkan autostart service pada startup level sistem.
+Setelah jichi dan tengen kami restart di GNS3, seluruh antarmuka dan layanan
+langsung aktif secara otomatis, dan klien tetap memperoleh konfigurasi IP
+sesuai kebijakan semula."

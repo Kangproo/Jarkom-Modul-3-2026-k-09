@@ -1,0 +1,118 @@
+================================================================
+PANDUAN PRAKTEK & DEMO: SOAL 4
+Topik: Segmentasi Dua Pool DHCP pada Network 2 (Divisi A)
+================================================================
+
+[ TUJUAN SOAL ]
+1. Mengatur 2 pool terpisah di Network 2:
+   - Pool 1: 10.68.2.10 - 10.68.2.35 untuk itadori & fushiguro
+   - Pool 2: 10.68.2.70 - 10.68.2.95 untuk zenin & okkotsu
+2. Rentang 10.68.2.36 - 10.68.2.69 TIDAK BOLEH dialokasikan.
+3. Memisahkan kedua grup menggunakan DHCP class (Client ID / Hostname).
+
+----------------------------------------------------------------
+LANGKAH 1: KONFIGURASI PADA tengen
+----------------------------------------------------------------
+Buka terminal node: tengen
+Copy-paste konfigurasi berikut ke terminal tengen:
+
+cat > /etc/dhcp/dhcpd.conf << 'EOF'
+option domain-name "k09.com";
+option domain-name-servers 10.68.1.2, 10.68.1.3;
+default-lease-time 600;
+max-lease-time 7200;
+ddns-update-style none;
+authoritative;
+
+# DHCP Class untuk Network 2 (mencocokkan Client ID & Hostname)
+class "pool1" {
+    match if (option dhcp-client-identifier = "itadori") or
+             (option host-name = "itadori") or
+             (option dhcp-client-identifier = "fushiguro") or
+             (option host-name = "fushiguro");
+}
+
+class "pool2" {
+    match if (option dhcp-client-identifier = "zenin") or
+             (option host-name = "zenin") or
+             (option dhcp-client-identifier = "okkotsu") or
+             (option host-name = "okkotsu");
+}
+
+# Subnet 4 (Data Center)
+subnet 10.68.4.0 netmask 255.255.255.0 {
+    option routers 10.68.4.1;
+    option broadcast-address 10.68.4.255;
+}
+
+# Subnet 2 (Divisi A)
+subnet 10.68.2.0 netmask 255.255.255.0 {
+    option routers 10.68.2.1;
+    option broadcast-address 10.68.2.255;
+    option domain-name-servers 10.68.1.2, 10.68.1.3;
+    option domain-search "k09.com";
+
+    # Pool 1 (itadori & fushiguro)
+    pool {
+        allow members of "pool1";
+        range 10.68.2.10 10.68.2.35;
+    }
+
+    # Pool 2 (zenin & okkotsu)
+    pool {
+        allow members of "pool2";
+        range 10.68.2.70 10.68.2.95;
+    }
+}
+
+# Subnet 3 (Scope awal Network 3)
+subnet 10.68.3.0 netmask 255.255.255.0 {
+    option routers 10.68.3.1;
+    option broadcast-address 10.68.3.255;
+    option domain-name-servers 10.68.1.2, 10.68.1.3;
+    option domain-search "k09.com";
+}
+EOF
+
+service isc-dhcp-server restart
+
+
+----------------------------------------------------------------
+LANGKAH 2: EKSEKUSI DI KLIEN NETWORK 2
+----------------------------------------------------------------
+Tips: Agar IP klien tidak hilang saat restart, kamu bisa memasukkannya
+lewat Klik Kanan Klien -> Edit network configuration:
+auto eth0
+iface eth0 inet dhcp
+    hostname <nama_klien>
+    client <nama_klien>
+
+Atau jalankan perintah langsung di terminal klien:
+----------------------------------------------------------------
+Buka masing-masing terminal klien dan jalankan perintah:
+
+[ itadori ]   : killall udhcpc 2>/dev/null; udhcpc -i eth0 -c itadori -H itadori
+[ fushiguro ] : killall udhcpc 2>/dev/null; udhcpc -i eth0 -c fushiguro -H fushiguro
+[ zenin ]     : killall udhcpc 2>/dev/null; udhcpc -i eth0 -c zenin -H zenin
+[ okkotsu ]   : killall udhcpc 2>/dev/null; udhcpc -i eth0 -c okkotsu -H okkotsu
+
+
+----------------------------------------------------------------
+LANGKAH 3: CARA DEMO KE ASISTEN (VERIFIKASI)
+----------------------------------------------------------------
+1. Di terminal itadori & fushiguro:
+   ip addr show eth0
+   -> Tunjukkan ke asisten: IP berada di rentang 10.68.2.10 - 10.68.2.35.
+
+2. Di terminal zenin & okkotsu:
+   ip addr show eth0
+   -> Tunjukkan ke asisten: IP berada di rentang 10.68.2.70 - 10.68.2.95.
+
+3. Tunjukkan bahwa rentang 10.68.2.36 - 10.68.2.69 kosong / tidak ada yang pakai.
+
+[ POIN PENJELASAN UNTUK DIUCAPKAN KE ASISTEN ]
+"Meskipun keempat klien berada di subnet yang sama (10.68.2.0/24), kami
+membuat DHCP class 'pool1' dan 'pool2' menggunakan Client ID dan Hostname.
+Dengan demikian, itadori dan fushiguro hanya diizinkan mengambil IP dari
+Pool 1 (10.68.2.10-.35), sedangkan zenin dan okkotsu dari Pool 2 (10.68.2.70-.95).
+Rentang .36 sampai .69 sengaja tidak dimasukkan ke pool mana pun."

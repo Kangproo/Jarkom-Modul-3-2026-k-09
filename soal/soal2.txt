@@ -1,0 +1,81 @@
+================================================================
+PANDUAN PRAKTEK & DEMO: SOAL 2
+Topik: Konfigurasi DHCP Server pada tengen
+================================================================
+
+[ TUJUAN SOAL ]
+1. Memasang isc-dhcp-server pada tengen (10.68.4.10).
+2. Mendeklarasikan Network 4 (10.68.4.0/24) sebagai subnet lokal tanpa pool dinamis.
+3. Menyiapkan scope DHCP untuk Network 2 (10.68.2.0/24) dan Network 3 (10.68.3.0/24).
+4. Memastikan service aktif tanpa error "No subnet declaration for eth0".
+
+----------------------------------------------------------------
+LANGKAH 1: KONFIGURASI PADA tengen
+----------------------------------------------------------------
+Buka terminal node: tengen
+Copy-paste perintah berikut langsung ke terminal:
+
+# 1. Update & install isc-dhcp-server
+apt-get update
+apt-get install -y isc-dhcp-server
+
+# 2. Tentukan interface eth0 untuk DHCP IPv4
+cat > /etc/default/isc-dhcp-server << 'EOF'
+INTERFACESv4="eth0"
+INTERFACESv6=""
+EOF
+
+# 3. Konfigurasi dhcpd.conf
+cat > /etc/dhcp/dhcpd.conf << 'EOF'
+option domain-name "k09.com";
+option domain-name-servers 10.68.1.2, 10.68.1.3;
+default-lease-time 600;
+max-lease-time 7200;
+ddns-update-style none;
+authoritative;
+
+# Subnet Network 4 (Lokal Data Center - Wajib ada, tapi TANPA pool alokasi dinamis)
+subnet 10.68.4.0 netmask 255.255.255.0 {
+    option routers 10.68.4.1;
+    option broadcast-address 10.68.4.255;
+}
+
+# Scope Network 2 (Divisi A)
+subnet 10.68.2.0 netmask 255.255.255.0 {
+    option routers 10.68.2.1;
+    option broadcast-address 10.68.2.255;
+    option domain-name-servers 10.68.1.2, 10.68.1.3;
+    option domain-search "k09.com";
+}
+
+# Scope Network 3 (Divisi B)
+subnet 10.68.3.0 netmask 255.255.255.0 {
+    option routers 10.68.3.1;
+    option broadcast-address 10.68.3.255;
+    option domain-name-servers 10.68.1.2, 10.68.1.3;
+    option domain-search "k09.com";
+}
+EOF
+
+# 4. Restart service DHCP Server
+service isc-dhcp-server restart
+
+
+----------------------------------------------------------------
+LANGKAH 2: CARA DEMO KE ASISTEN (VERIFIKASI)
+----------------------------------------------------------------
+1. Di terminal tengen, jalankan:
+   service isc-dhcp-server status
+   -> Tunjukkan ke asisten: status berwarna hijau "active (running)".
+
+2. Tunjukkan isi deklarasi subnet Network 4:
+   cat /etc/dhcp/dhcpd.conf | grep -A 5 "subnet 10.68.4.0"
+   -> Tunjukkan ke asisten: blok subnet 10.68.4.0 ada, tetapi tidak memiliki range pool.
+
+[ POIN PENJELASAN UNTUK DIUCAPKAN KE ASISTEN ]
+"Pada Soal 2, kami mengonfigurasi isc-dhcp-server di tengen.
+Sesuai aturan ISC DHCP, interface eth0 berada pada network 10.68.4.0/24,
+sehingga subnet tersebut WAJIB dideklarasikan agar tidak muncul error
+'No subnet declaration for eth0'. Karena Network 4 adalah area server,
+subnet ini kami deklarasikan tanpa range dinamis. Scope untuk Network 2
+dan Network 3 juga kami siapkan agar siap menerima request dari relay."

@@ -1,0 +1,44 @@
+================================================================
+PANDUAN PRAKTEK & DEMO: SOAL 7
+Topik: Audit & Verifikasi Parameter Jaringan Seluruh Klien
+================================================================
+
+[ TUJUAN SOAL ]
+1. Memastikan setiap klien menerima: Netmask /24, Gateway benar, Broadcast benar.
+2. Memastikan DNS 10.68.1.2, 10.68.1.3 dan domain-search k09.com terpasang.
+3. Memeriksa /var/lib/dhcp/dhcpd.leases pada tengen.
+4. Memastikan tidak ada IP bertabrakan atau di luar kebijakan.
+
+----------------------------------------------------------------
+CARA DEMO KE ASISTEN
+----------------------------------------------------------------
+
+1. UJI DI SISI KLIEN (Buka salah satu klien, misal itadori atau miwa):
+   ip addr show eth0
+   -> Tunjukkan: Netmask /24 (255.255.255.0) dan broadcast benar.
+
+   ip route show
+   -> Tunjukkan: Default gateway mengarah ke 10.68.2.1 (Net 2) atau 10.68.3.1 (Net 3).
+
+   cat /etc/resolv.conf
+   -> Tunjukkan: Nameserver 10.68.1.2 & 10.68.1.3 serta search k09.com terpasang.
+
+   ping -c 2 10.68.2.1
+   -> Tunjukkan: Konektivitas ke gateway sukses (0% packet loss).
+
+2. UJI DI SISI SERVER (Buka terminal tengen):
+   grep -E "^lease|client-hostname|binding state active" /var/lib/dhcp/dhcpd.leases
+   -> Tunjukkan ke asisten: Seluruh IP yang terdaftar sesuai dengan pool masing-masing:
+      - Pool 1: .2.10 - .2.35
+      - Pool 2: .2.70 - .2.95
+      - Short lease: .3.10 - .3.89
+      - Long lease: .3.100 - .3.199
+      - Fixed VIP: .3.99
+      - Rentang .2.36 - .2.69 TIDAK ADA di leases (bersih).
+
+[ POIN PENJELASAN UNTUK DIUCAPKAN KE ASISTEN ]
+"Kami melakukan audit parameter jaringan pada seluruh terminal Divisi A dan B.
+Setiap klien terbukti menerima netmask /24, gateway lokal yang tepat,
+serta DNS dan domain search k09.com. Pemeriksaan pada database lease di tengen
+memvalidasi bahwa seluruh IP dialokasikan sesuai dengan kebijakan tanpa ada
+kebocoran rentang atau tabrakan alamat."

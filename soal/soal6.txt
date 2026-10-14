@@ -1,0 +1,68 @@
+================================================================
+PANDUAN PRAKTEK & DEMO: SOAL 6
+Topik: Static DHCP Lease VIP kugisaki (10.68.3.99)
+================================================================
+
+[ TUJUAN SOAL ]
+1. Memberikan fixed-address 10.68.3.99 untuk klien VIP kugisaki.
+2. Mengikat alokasi berdasarkan MAC Address asli milik kugisaki.
+3. Memastikan IP 10.68.3.99 berada di luar seluruh pool dinamis.
+
+----------------------------------------------------------------
+LANGKAH 1: CEK MAC ADDRESS kugisaki
+----------------------------------------------------------------
+Buka terminal node: kugisaki
+Jalankan:
+ip link show eth0 | grep ether
+-> Catat MAC Address-nya, misal: 02:42:0a:44:03:63
+
+
+----------------------------------------------------------------
+LANGKAH 2: DAFTARKAN HOST DI tengen
+----------------------------------------------------------------
+Buka terminal node: tengen
+Ganti <MAC_KUGISAKI> di bawah dengan MAC address yang kamu catat tadi,
+lalu jalankan di terminal tengen:
+
+cat >> /etc/dhcp/dhcpd.conf << 'EOF'
+
+# Static Lease VIP kugisaki
+host kugisaki {
+    hardware ethernet <MAC_KUGISAKI>;
+    fixed-address 10.68.3.99;
+    option routers 10.68.3.1;
+    option broadcast-address 10.68.3.255;
+    option domain-name-servers 10.68.1.2, 10.68.1.3;
+    option domain-search "k09.com";
+}
+EOF
+
+# Restart server DHCP
+service isc-dhcp-server restart
+
+
+----------------------------------------------------------------
+LANGKAH 3: RENEW LEASE DI kugisaki
+----------------------------------------------------------------
+Buka terminal node: kugisaki
+Jalankan perintah ini untuk menarik IP baru:
+killall udhcpc 2>/dev/null
+udhcpc -i eth0 -c kugisaki -H kugisaki
+
+
+----------------------------------------------------------------
+LANGKAH 4: CARA DEMO KE ASISTEN (VERIFIKASI)
+----------------------------------------------------------------
+1. Di terminal kugisaki, jalankan:
+   ip addr show eth0
+   -> Tunjukkan ke asisten: IP tepat 10.68.3.99.
+
+2. Di terminal tengen, tunjukkan konfigurasi host:
+   cat /etc/dhcp/dhcpd.conf | grep -A 8 "host kugisaki"
+   -> Tunjukkan: pemetaan MAC address ke fixed-address 10.68.3.99.
+
+[ POIN PENJELASAN UNTUK DIUCAPKAN KE ASISTEN ]
+"kugisaki adalah VIP yang memerlukan IP permanen. Kami menggunakan fitur
+host reservation dengan mengikat MAC Address eth0 kugisaki ke alamat 10.68.3.99.
+Alamat ini berada di luar pool short-lease (.10-.89) dan long-lease (.100-.199),
+sehingga dijamin tidak akan pernah bentrok dengan klien dinamis lainnya."
