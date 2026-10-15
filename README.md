@@ -226,14 +226,16 @@ Konfigurasi class dan pool pada `/etc/dhcp/dhcpd.conf` di tengen:
 ```text
 class "pool1" {
     match if (option host-name = "itadori") or
+             (substring(hardware, 1, 6) = 02:42:94:0f:6d:00) or
              (option host-name = "fushiguro") or
-             (substring(hardware, 1, 6) = 02:42:94:0f:6d:00);
+             (substring(hardware, 1, 6) = 02:42:d0:8b:5a:00);
 }
 
 class "pool2" {
     match if (option host-name = "zenin") or
+             (substring(hardware, 1, 6) = 02:42:c5:24:d7:00) or
              (option host-name = "okkotsu") or
-             (substring(hardware, 1, 6) = 02:42:c5:24:d7:00);
+             (substring(hardware, 1, 6) = 02:42:fc:94:69:00);
 }
 
 subnet 10.68.2.0 netmask 255.255.255.0 {
@@ -296,7 +298,8 @@ Konfigurasi class dan subnet pada `/etc/dhcp/dhcpd.conf` di tengen:
 class "short-lease" {
     match if (option host-name = "ino") or
              (substring(hardware, 1, 6) = 02:42:ae:72:7a:00) or
-             (option host-name = "kusakabe");
+             (option host-name = "kusakabe") or
+             (substring(hardware, 1, 6) = 02:42:f0:3b:82:00);
 }
 
 class "long-lease" {
