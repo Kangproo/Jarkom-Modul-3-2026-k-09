@@ -451,29 +451,31 @@ Hasil pemeriksaan memastikan seluruh alokasi IP sesuai kebijakan pool dan tidak 
 
 ## 8. Analisis Transaksi DHCP Melalui Packet Capture
 
-Proses transaksi 4 tahapan DHCP (DORA) dipantau menggunakan `tcpdump` pada interface `eth0` di tengen saat klien melakukan request lease.
+Pengujian dilakukan menggunakan klien `itadori` pada Network 2 (`10.68.2.0/24`). Itadori terhubung melalui interface `eth2` pada router `jichi`, sehingga field `giaddr` yang diharapkan pada paket yang diterima server adalah `10.68.2.1`.
 
-Jalankan capture pada tengen:
+Jalankan capture pada node `tengen` (`10.68.4.10`):
 
 ```bash
-tcpdump -i eth0 -n port 67 or port 68 -vvv
+tcpdump -i eth0 -n -vvv 'port 67 or port 68'
 ```
 
-Lakukan request dari salah satu klien:
+Saat `tcpdump` menunggu paket, buka terminal `itadori` dan jalankan:
 
 ```sh
 killall udhcpc 2>/dev/null
 ip addr flush dev eth0
-udhcpc -i eth0
+udhcpc -i eth0 -c itadori -H itadori
 ```
 
-Output mencatat urutan transaksi lengkap:
-1. `DHCPDISCOVER`: Paket tiba dari DHCP relay (`10.68.4.1`) dengan `Gateway-IP 10.68.3.1` dan MAC `02:42:97:3f:1c:00`.
-2. `DHCPOFFER`: Server tengen (`10.68.4.10`) memberikan penawaran `Your-IP 10.68.3.99` lengkap dengan domain `k09.com` dan DNS `10.68.1.2, 10.68.1.3`.
-3. `DHCPREQUEST`: Klien secara formal meminta lease `Requested-IP 10.68.3.99`.
-4. `DHCPACK`: Server mengonfirmasi alokasi akhir IP `10.68.3.99`.
+`-c itadori` mengirim Client ID (Option 61), sedangkan `-H itadori` mengirim hostname (Option 12). Hostname ini yang dicocokkan oleh class `pool1` pada konfigurasi DHCP server.
 
-Field `Gateway-IP` (`giaddr`) terisi `10.68.3.1` (IP antarmuka `eth3` router jichi), membuktikan fungsi DHCP relay berhasil menyisipkan identitas subnet asal sehingga DHCP server dapat menentukan alokasi subnet yang tepat.
+Jika transaksi berhasil, cari empat pesan berikut pada capture `tengen`:
+1. `DHCPDISCOVER`: request yang diteruskan relay; field `Gateway-IP`/`giaddr` diharapkan bernilai `10.68.2.1`.
+2. `DHCPOFFER`: server `tengen` (`10.68.4.10`) menawarkan alamat klien dari Pool 1, yaitu rentang `10.68.2.10`–`10.68.2.35`.
+3. `DHCPREQUEST`: klien meminta alamat yang ditawarkan; field `giaddr` tetap `10.68.2.1`.
+4. `DHCPACK`: server mengonfirmasi lease untuk alamat yang ditawarkan. IP tepatnya bisa berbeda selama masih berada dalam rentang Pool 1 dan tersedia.
+
+Field `giaddr` adalah alamat interface relay yang menerima request dari subnet klien. Karena `itadori` berada di Network 2 yang terhubung ke `eth2` `jichi`, nilainya harus `10.68.2.1`. Jangan gunakan `kugisaki` untuk pengujian ini karena ia berada di Network 3 dan akan menghasilkan `giaddr` `10.68.3.1`.
 
 **Nama file foto:** `images/soal8/tcpdump-dora-giaddr.png`
 
@@ -482,6 +484,12 @@ Field `Gateway-IP` (`giaddr`) terisi `10.68.3.1` (IP antarmuka `eth3` router jic
 **Nama file foto:** `images/soal8/tcpdump-ack.png`
 
 ![Packet capture DHCPACK](images/soal8/tcpdump-ack.png)
+
+Setelah capture, verifikasi bahwa alamat `itadori` berada di Pool 1:
+
+```bash
+ip addr show eth0
+```
 
 ---
 
