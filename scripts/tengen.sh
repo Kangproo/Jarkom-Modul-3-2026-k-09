@@ -40,7 +40,7 @@ cat > /etc/dhcp/dhcpd.conf << 'EOF'
 # dhcpd.conf - Konfigurasi DHCP Server tengen (K09)
 # ============================================================
 
-option domain-name "K09.com";
+option domain-name "k09.com";
 option domain-name-servers 10.68.1.2, 10.68.1.3;
 default-lease-time 600;
 max-lease-time 7200;
@@ -84,7 +84,7 @@ subnet 10.68.2.0 netmask 255.255.255.0 {
     option routers 10.68.2.1;
     option broadcast-address 10.68.2.255;
     option domain-name-servers 10.68.1.2, 10.68.1.3;
-    option domain-search "K09.com";
+    option domain-search "k09.com";
 
     # Pool 1: 10.68.2.10 - 10.68.2.35 (itadori & fushiguro)
     pool {
@@ -105,7 +105,7 @@ subnet 10.68.3.0 netmask 255.255.255.0 {
     option routers 10.68.3.1;
     option broadcast-address 10.68.3.255;
     option domain-name-servers 10.68.1.2, 10.68.1.3;
-    option domain-search "K09.com";
+    option domain-search "k09.com";
 
     # Short lease pool: 10.68.3.10 - 10.68.3.89 (ino & kusakabe)
     pool {
