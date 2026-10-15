@@ -5,7 +5,7 @@ Topik: Packet Capture 4 Tahapan DHCP (DORA) & Verifikasi giaddr
 
 [ TUJUAN SOAL ]
 1. Merekam transaksi DHCP saat klien meminta lease baru.
-2. Memperlihatkan urutan transaksi 4 jabat tangan:
+2. Memperlihatkan urutan transaksi 4 tahapan:
    DHCPDISCOVER -> DHCPOFFER -> DHCPREQUEST -> DHCPACK
 3. Memvalidasi nilai field giaddr sesuai interface jichi penerima request.
 
@@ -14,34 +14,49 @@ SKENARIO DEMO LANGKAH DEMI LANGKAH
 ----------------------------------------------------------------
 
 LANGKAH 1: JALANKAN CAPTURE DI SERVER
-Buka terminal node: tengen
-Ketik perintah berikut (terminal akan menunggu paket):
-tcpdump -i eth0 -n port 67 or port 68 -vvv
+Buka terminal node: tengen (10.68.4.10)
+Ketik perintah berikut; terminal akan menunggu paket:
+tcpdump -i eth0 -n -vvv 'port 67 or port 68'
 
 LANGKAH 2: TRIGGER REQUEST DI KLIEN
-Buka terminal node: itadori (jangan tutup terminal tengen)
-Ketik perintah untuk melepaskan dan meminta IP baru:
+Buka terminal node: itadori (jangan tutup terminal tengen).
+Jalankan perintah untuk meminta lease baru:
 killall udhcpc 2>/dev/null
 ip addr flush dev eth0
-udhcpc -i eth0 -H itadori
+udhcpc -i eth0 -c itadori -H itadori
+
+-c itadori mengirim Client ID (Option 61).
+-H itadori mengirim hostname (Option 12), yang dicocokkan oleh class pool1.
 
 LANGKAH 3: LIHAT HASIL DI TERMINAL TENGEN
-Kembali ke terminal tengen dan amati output tcpdump:
-1. DHCPDISCOVER: Paket pertama dari relay.
-2. DHCPOFFER: Tawaran IP dari tengen (10.68.4.10).
-3. DHCPREQUEST: Permintaan resmi klien.
-4. DHCPACK: Konfirmasi persetujuan dari server.
+Jika transaksi berhasil, cari urutan berikut pada output tcpdump:
+1. DHCPDISCOVER: request yang diteruskan relay; Gateway-IP/giaddr seharusnya 10.68.2.1.
+2. DHCPOFFER: server tengen (10.68.4.10) menawarkan IP klien dari Pool 1,
+   yaitu rentang 10.68.2.10 sampai 10.68.2.35.
+3. DHCPREQUEST: klien meminta alamat yang ditawarkan; giaddr tetap 10.68.2.1.
+4. DHCPACK: server mengonfirmasi lease untuk alamat yang ditawarkan.
 
-Perhatikan baris:
-giaddr: 10.68.2.1
--> Ini adalah alamat antarmuka eth2 router jichi!
+Alamat klien yang ditawarkan tidak harus selalu 10.68.2.10; alamatnya dapat
+berbeda selama masih berada dalam Pool 1 dan tersedia.
+
+Perhatikan field Gateway-IP (nama tampilannya bisa berbeda menurut versi tcpdump):
+giaddr = 10.68.2.1
+Alamat ini adalah IP interface eth2 pada router jichi, yang terhubung ke Network 2.
+Jangan gunakan kugisaki untuk demo ini karena kugisaki berada di Network 3 dan
+giaddr yang diharapkan untuknya adalah 10.68.3.1.
 
 ----------------------------------------------------------------
 POIN PENJELASAN UNTUK DIUCAPKAN KE ASISTEN
 ----------------------------------------------------------------
-"Melalui tcpdump pada antarmuka eth0 tengen, kami mendokumentasikan proses
-lengkap 4 jabat tangan DHCP: Discover, Offer, Request, dan Ack.
-Field giaddr terisi 10.68.2.1, yaitu IP eth2 jichi tempat itadori terhubung.
-Field giaddr inilah yang menjadi kunci bagi server tengen untuk mengetahui
-bahwa request datang dari Network 2, sehingga server memberikan penawaran
-dari Pool 1 Network 2."
+"Kami menjalankan tcpdump pada eth0 tengen untuk melihat empat pesan DHCP:
+Discover, Offer, Request, dan Ack. Klien yang diuji adalah itadori di Network 2,
+jadi field giaddr yang diharapkan adalah 10.68.2.1, yaitu IP eth2 jichi.
+Server menggunakan informasi subnet tersebut untuk memberikan alamat dari
+Pool 1 Network 2, yaitu rentang 10.68.2.10 sampai 10.68.2.35."
+
+----------------------------------------------------------------
+SCREENSHOT YANG PERLU DISIAPKAN
+----------------------------------------------------------------
+1. images/soal8/tcpdump-dora-giaddr.png - capture DHCPDISCOVER, DHCPOFFER,
+   DHCPREQUEST, dan field Gateway-IP/giaddr 10.68.2.1.
+2. images/soal8/tcpdump-ack.png - capture DHCPACK.
