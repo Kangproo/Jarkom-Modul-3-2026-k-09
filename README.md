@@ -464,17 +464,21 @@ ip addr flush dev eth0
 udhcpc -i eth0
 ```
 
-Output mencatat urutan transaksi:
-1. `DHCPDISCOVER`
-2. `DHCPOFFER`
-3. `DHCPREQUEST`
-4. `DHCPACK`
+Output mencatat urutan transaksi lengkap:
+1. `DHCPDISCOVER`: Paket tiba dari DHCP relay (`10.68.4.1`) dengan `Gateway-IP 10.68.3.1` dan MAC `02:42:97:3f:1c:00`.
+2. `DHCPOFFER`: Server tengen (`10.68.4.10`) memberikan penawaran `Your-IP 10.68.3.99` lengkap dengan domain `k09.com` dan DNS `10.68.1.2, 10.68.1.3`.
+3. `DHCPREQUEST`: Klien secara formal meminta lease `Requested-IP 10.68.3.99`.
+4. `DHCPACK`: Server mengonfirmasi alokasi akhir IP `10.68.3.99`.
 
-Field `giaddr` terisi `10.68.2.1` (IP interface `eth2` jichi), menandakan paket tiba melalui relay dan mengarahkan server untuk memilih pool Network 2.
+Field `Gateway-IP` (`giaddr`) terisi `10.68.3.1` (IP antarmuka `eth3` router jichi), membuktikan fungsi DHCP relay berhasil menyisipkan identitas subnet asal sehingga DHCP server dapat menentukan alokasi subnet yang tepat.
 
 **Nama file foto:** `images/soal8/tcpdump-dora-giaddr.png`
 
-![Packet capture DORA dan validasi giaddr](images/soal8/tcpdump-dora-giaddr.png)
+![Packet capture DHCPDISCOVER, DHCPOFFER, dan DHCPREQUEST](images/soal8/tcpdump-dora-giaddr.png)
+
+**Nama file foto:** `images/soal8/tcpdump-ack.png`
+
+![Packet capture DHCPACK](images/soal8/tcpdump-ack.png)
 
 ---
 
