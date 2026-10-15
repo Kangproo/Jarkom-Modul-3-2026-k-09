@@ -23,10 +23,10 @@ Buka terminal node: itadori (jangan tutup terminal tengen).
 Jalankan perintah untuk meminta lease baru:
 killall udhcpc 2>/dev/null
 ip addr flush dev eth0
-udhcpc -i eth0 -c itadori -H itadori
+udhcpc -i eth0 -x hostname:itadori
 
--c itadori mengirim Client ID (Option 61).
--H itadori mengirim hostname (Option 12), yang dicocokkan oleh class pool1.
+-x hostname:itadori mengirim hostname DHCP (Option 12), yang dicocokkan oleh class pool1.
+Opsi ini kompatibel dengan versi BusyBox udhcpc pada node Alpine.
 
 LANGKAH 3: LIHAT HASIL DI TERMINAL TENGEN
 Jika transaksi berhasil, cari urutan berikut pada output tcpdump:
