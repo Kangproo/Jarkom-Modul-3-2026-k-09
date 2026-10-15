@@ -565,10 +565,10 @@ ip addr show eth0
 
 ![Status tengen setelah restart](images/soal10/tengen-autostart.png)
 
-Verifikasi dari klien (contoh miwa):
+Verifikasi dari klien (contoh kugisaki):
 
 ```sh
-udhcpc -i eth0 -n
+udhcpc -i eth0
 ip addr show eth0
 ```
 
