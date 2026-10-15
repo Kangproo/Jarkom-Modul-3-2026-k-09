@@ -1157,12 +1157,6 @@ Kusakabe memperoleh `10.68.3.10/24` dengan lease 1800 detik. Setelah mengakses A
 
 ![Kusakabe memperoleh DHCP dan mengakses API](images/soal17/17-dhcp-kusakabe-api-network3.png)
 
-**Nama file foto:** `images/soal17/17-ip-asli-client-network3-database-yaga.png`
-
-<!-- ![IP asli kusakabe tercatat pada database Yaga](images/soal17/17-ip-asli-client-network3-database-yaga.png) -->
-
-*Foto database Yaga untuk Network 3 belum tersedia di repository.*
-
 ---
 
 ## 18. Pengujian Failover ke kirara
