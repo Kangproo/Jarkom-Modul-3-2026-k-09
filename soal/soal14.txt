@@ -1,0 +1,120 @@
+================================================================
+PANDUAN PRAKTEK & DEMO: SOAL 14
+Topik: Web Frontend maki/panda dan API Worker nanami/todo/kirara
+================================================================
+
+[ TUJUAN SOAL ]
+1. Menjalankan web frontend PHP-FPM pada maki (10.68.4.3) dan panda (10.68.4.4).
+2. Membuat API di nanami (10.68.4.5), todo (10.68.4.6), kirara (10.68.4.7).
+3. Setiap request API dicatat ke tabel request_logs pada yaga.
+4. Worker API hanya melayani endpoint /api dari Geto atau loopback lokal.
+
+----------------------------------------------------------------
+LANGKAH 1: KONFIGURASI FRONTEND MAKI DAN PANDA
+----------------------------------------------------------------
+Di kedua node frontend:
+
+apt-get update
+DEBIAN_FRONTEND=noninteractive apt-get install -y nginx php-fpm php-cli curl
+service php8.4-fpm start
+service nginx start
+
+Halaman berada pada /var/www/html/index.php.
+File tersebut menggunakan gethostname() untuk menampilkan server
+yang sedang menerima request. Dengan begitu, satu halaman dapat
+dipakai pada maki dan panda tanpa mengganti nama secara manual.
+
+Konfigurasi Nginx menggunakan PHP-FPM versi 8.4:
+  fastcgi_pass unix:/run/php/php8.4-fpm.sock;
+
+Periksa di masing-masing frontend:
+
+service php8.4-fpm status
+service nginx status
+nginx -t
+curl -s http://127.0.0.1/
+
+-> Pada maki harus terlihat "Server: maki".
+-> Pada panda harus terlihat "Server: panda".
+
+----------------------------------------------------------------
+LANGKAH 2: KONFIGURASI API WORKER
+----------------------------------------------------------------
+Di nanami, todo, dan kirara:
+
+apt-get update
+DEBIAN_FRONTEND=noninteractive apt-get install -y \
+    nginx php-fpm php-cli php-mysql curl
+
+service php8.4-fpm start
+service nginx start
+php -m | grep -Ei 'mysqli|pdo_mysql'
+
+Kode API berada di:
+  /var/www/k09-api/index.php
+
+API mengambil nama worker menggunakan gethostname() dan alamat
+client dari request, lalu INSERT ke:
+  db_shibuya_k09.request_logs (worker_name, client_ip)
+
+Koneksi MariaDB:
+  Master     : 10.68.4.8
+  Database   : db_shibuya_k09
+  User       : app_k09
+  Password   : disimpan di /etc/k09-app-secret (bukan di repo)
+
+File password harus tetap hanya bisa dibaca root dan www-data:
+  owner root:www-data, permission 640.
+
+Nginx worker mengarahkan /api melalui PHP-FPM dan memberikan akses
+hanya untuk 10.68.4.2 (Geto) dan 127.0.0.1 (uji lokal).
+
+Cuplikan blok Nginx yang digunakan:
+location ~ ^/api/?$ {
+    allow 10.68.4.2;
+    allow 127.0.0.1;
+    deny all;
+    include /etc/nginx/k09-fastcgi-params;
+    fastcgi_param SCRIPT_FILENAME /var/www/k09-api/index.php;
+    fastcgi_pass unix:/run/php/php8.4-fpm.sock;
+}
+
+----------------------------------------------------------------
+LANGKAH 3: CARA DEMO KE ASISTEN (VERIFIKASI)
+----------------------------------------------------------------
+Di masing-masing API worker:
+
+php -l /var/www/k09-api/index.php
+nginx -t
+service nginx status
+service php8.4-fpm status
+
+Dari Geto (10.68.4.2):
+
+curl -i http://10.68.4.5/api
+curl -i http://10.68.4.6/api
+curl -i http://10.68.4.7/api
+
+-> Semua menghasilkan HTTP 200 dan JSON status ok.
+-> Worker masing-masing adalah nanami, todo, dan kirara.
+
+Di yaga:
+
+mariadb -e "SELECT id,worker_name,client_ip FROM db_shibuya_k09.request_logs ORDER BY id DESC LIMIT 10;"
+
+-> Data request worker masuk ke database Master.
+
+Catatan pengujian: Kirara sempat gagal akses yaga akibat MAC
+kembar. MAC Kirara dibedakan menjadi 02:68:04:00:00:07.
+Jangan mengembalikan alamat MAC lama yang bentrok.
+
+Screenshot: images/soal14/
+- 14-frontend-maki-panda-php-berhasil.png
+API worker juga dibuktikan melalui tes curl Geto pada saat pengerjaan.
+
+[ POIN PENJELASAN UNTUK DIUCAPKAN KE ASISTEN ]
+"Maki dan panda adalah frontend yang menampilkan hostname server.
+Sementara nanami, todo, dan kirara menjalankan endpoint API berbasis
+PHP-FPM. Setiap API dipanggil, worker memasukkan nama server serta
+IP client ke database yaga. Akses endpoint worker dibatasi agar
+request utamanya datang melalui load balancer Geto."

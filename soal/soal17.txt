@@ -1,0 +1,105 @@
+================================================================
+PANDUAN PRAKTEK & DEMO: SOAL 17
+Topik: Penerusan IP Asli Client ke Database request_logs
+================================================================
+
+[ TUJUAN SOAL ]
+1. Membuat IP asli client tidak hilang saat melewati Gojo dan Geto.
+2. Meneruskan X-Real-IP secara benar ke API worker.
+3. Membuktikan tabel request_logs menyimpan IP client Network 2.
+4. Membuktikan IP client Network 3 juga tercatat dengan benar.
+
+----------------------------------------------------------------
+LANGKAH 1: KONFIGURASI PENERUSAN IP
+----------------------------------------------------------------
+Alur request:
+Client -> Gojo (10.68.1.4) -> Geto (10.68.4.2)
+       -> Nanami / Todo / Kirara -> Yaga (10.68.4.8)
+
+Pada pengujian awal, client_ip di database berisi 10.68.4.2
+karena worker melihat IP koneksi dari Geto, bukan client asli.
+
+Di Gojo, konfigurasi /api meneruskan:
+  proxy_set_header X-Real-IP $remote_addr;
+  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+
+Di Geto, file /etc/nginx/conf.d/k09-no17-realip.conf berisi:
+  set_real_ip_from 10.68.1.4;
+  real_ip_header X-Real-IP;
+
+Geto hanya mempercayai header real IP dari Gojo.
+
+Pada tiap worker, kode /var/www/k09-api/index.php memakai:
+
+$peer = $_SERVER['REMOTE_ADDR'] ?? '';
+$ip = $peer;
+
+if ($peer === '10.68.4.2') {
+    $ip = $_SERVER['HTTP_X_REAL_IP'] ?? $peer;
+}
+
+IP yang sudah dibaca akan ditulis melalui INSERT ke request_logs.
+Jangan memakai X-Real-IP dari sembarang pengirim tanpa verifikasi peer.
+
+----------------------------------------------------------------
+LANGKAH 2: UJI NETWORK 2 (ITADORI)
+----------------------------------------------------------------
+Di itadori:
+ip -br -4 a
+curl -sS http://jujutsu.k09.com/api
+
+IP pengujian Itadori: 10.68.2.10.
+
+Di yaga:
+mariadb -e "SELECT id,worker_name,client_ip FROM db_shibuya_k09.request_logs ORDER BY id DESC LIMIT 5;"
+
+HASIL PENGUJIAN:
+ID 52 menyimpan client_ip 10.68.2.10.
+Baris sebelumnya masih ada yang bernilai 10.68.4.2 (sebelum
+konfigurasi IP asli diperbaiki).
+
+----------------------------------------------------------------
+LANGKAH 3: UJI NETWORK 3 (KUSAKABE)
+----------------------------------------------------------------
+Kusakabe mendapat IP dari DHCP Tengen menggunakan hostname
+yang sesuai class "short-lease".
+
+Di kusakabe:
+udhcpc -i eth0 -x hostname:kusakabe -n -q -t 5 -T 3
+ip -br -4 a
+cat /etc/resolv.conf
+curl -sS http://jujutsu.k09.com/api
+
+HASIL PENGUJIAN:
+- IP Kusakabe       : 10.68.3.10/24
+- Gateway           : 10.68.3.1
+- DNS               : 10.68.1.2 dan 10.68.1.3
+- Lease dari Tengen : 1800 detik
+- Hasil API         : status ok, client_ip 10.68.3.10
+
+Di yaga:
+mariadb -e "SELECT id,worker_name,client_ip FROM db_shibuya_k09.request_logs ORDER BY id DESC LIMIT 3;"
+
+Hasil saat demo sebelumnya:
+ID 53 : nanami, 10.68.3.10
+ID 52 : nanami, 10.68.2.10
+ID 51 : nanami, 10.68.4.2
+
+----------------------------------------------------------------
+CARA DEMO KE ASISTEN (VERIFIKASI)
+----------------------------------------------------------------
+1. Tunjukkan konfigurasi real_ip_header Geto dan X-Real-IP Gojo.
+2. Di itadori, panggil /api dan cocokkan IP pada database Yaga.
+3. Di kusakabe, panggil /api dan cocokkan IP pada database Yaga.
+4. Bandingkan data terbaru dengan catatan lama 10.68.4.2.
+
+Screenshot: images/soal17/
+- 17-ip-asli-client-database-network2.png
+- 17-dhcp-kusakabe-api-network3.png
+
+[ POIN PENJELASAN UNTUK DIUCAPKAN KE ASISTEN ]
+"Pada awalnya worker mencatat alamat IP Geto 10.68.4.2.
+Setelah konfigurasi X-Real-IP dan trusted proxy diperbaiki,
+alamat asli client diteruskan sampai API dan disimpan ke yaga.
+Hasil database mencatat Itadori 10.68.2.10 dan Kusakabe
+10.68.3.10, jadi kedua jaringan sudah terwakili."

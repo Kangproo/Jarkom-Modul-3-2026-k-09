@@ -1,0 +1,105 @@
+================================================================
+PANDUAN PRAKTEK & DEMO: SOAL 16
+Topik: Reverse Proxy gojo untuk Frontend dan API
+================================================================
+
+[ TUJUAN SOAL ]
+1. Menjadikan Gojo (10.68.1.4) reverse proxy utama.
+2. Path / mengarah bergantian ke frontend maki dan panda.
+3. Path /api diteruskan ke Geto (10.68.4.2).
+4. Mengakses sistem melalui domain jujutsu.k09.com dari client.
+
+----------------------------------------------------------------
+LANGKAH 1: KONFIGURASI NGINX GOJO
+----------------------------------------------------------------
+Di Gojo:
+
+apt-get update
+DEBIAN_FRONTEND=noninteractive apt-get install -y nginx curl
+
+IP Gojo 10.68.1.4/24 dan gateway 10.68.1.1.
+
+Konfigurasi inti /etc/nginx/sites-available/default:
+
+upstream k09_frontend {
+    server 10.68.4.3:80;
+    server 10.68.4.4:80;
+}
+
+server {
+    listen 80 default_server;
+    server_name jujutsu.k09.com;
+
+    location = /api {
+        proxy_pass http://10.68.4.2;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+
+    location / {
+        proxy_pass http://k09_frontend;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+}
+
+Catatan: Pada Soal 19, konfigurasi Gojo ditambah cache frontend
+dan rate limiting API. Jangan menimpa file yang sekarang aktif
+menggunakan cuplikan Soal 16 karena konfigurasi Soal 19 akan hilang.
+
+----------------------------------------------------------------
+LANGKAH 2: UJI ROUTING LOKAL DI GOJO
+----------------------------------------------------------------
+nginx -t
+service nginx status
+
+for i in $(seq 1 10); do
+    curl -sS --max-time 3 \
+        -H 'Host: jujutsu.k09.com' \
+        http://127.0.0.1/ | grep -oE 'Server: (maki|panda)'
+done
+
+curl -i -H 'Host: jujutsu.k09.com' http://127.0.0.1/api
+
+-> Frontend maki dan panda muncul.
+-> /api memberikan HTTP 200 dan JSON worker API.
+
+----------------------------------------------------------------
+LANGKAH 3: DEMO DARI ITADORI (NETWORK 2)
+----------------------------------------------------------------
+Di itadori:
+
+dig @10.68.1.2 jujutsu.k09.com +short
+
+for i in $(seq 1 8); do
+    curl -s http://jujutsu.k09.com/ \
+        | grep -oE 'Server: (maki|panda)'
+done
+
+curl -sS -w '\nHTTP: %{http_code}\n' \
+    http://jujutsu.k09.com/api
+
+HASIL AKTUAL:
+- Domain mengarah ke 10.68.1.4.
+- Maki dan Panda sama-sama tampil pada request frontend.
+- API memberikan status ok dan HTTP 200.
+
+----------------------------------------------------------------
+CARA DEMO KE ASISTEN (VERIFIKASI)
+----------------------------------------------------------------
+1. Perlihatkan upstream frontend pada Gojo.
+2. Uji akses domain dari itadori melalui DNS dan curl.
+3. Jelaskan path / diarahkan ke Maki/Panda, sementara /api ke Geto.
+
+Screenshot: images/soal16/
+- 16-domain-reverse-proxy-gojo.png
+- 16-api-json-domain-client.png
+
+[ POIN PENJELASAN UNTUK DIUCAPKAN KE ASISTEN ]
+"Gojo bertugas sebagai reverse proxy untuk domain jujutsu.k09.com.
+Request halaman utama diarahkan secara bergantian ke Maki dan Panda,
+sedangkan request /api diteruskan ke Geto sebagai load balancer API.
+Dari itadori, nama domain berhasil di-resolve ke Gojo dan kedua path
+dapat diakses dengan hasil HTTP 200."

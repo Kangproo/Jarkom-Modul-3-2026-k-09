@@ -1,0 +1,118 @@
+================================================================
+PANDUAN PRAKTEK & DEMO: SOAL 13
+Topik: Database MariaDB Master-Slave Replication
+================================================================
+
+[ TUJUAN SOAL ]
+1. Mengonfigurasi MariaDB Master yaga (10.68.4.8).
+2. Mengonfigurasi Slave inumaki (10.68.4.9).
+3. Membuat db_shibuya_k09 dan tabel request_logs.
+4. Membuktikan INSERT dari Network 4 tersimpan dan tereplikasi.
+
+----------------------------------------------------------------
+LANGKAH 1: SETUP DATABASE MASTER yaga
+----------------------------------------------------------------
+Paket MariaDB dipasang pada yaga dan inumaki:
+
+apt-get update
+DEBIAN_FRONTEND=noninteractive apt-get install -y mariadb-server mariadb-client
+
+service mariadb start
+
+Konfigurasi Master disimpan pada:
+  /etc/mysql/mariadb.conf.d/60-k09-master.cnf
+
+Isi parameter penting:
+[mysqld]
+server-id = 1
+log_bin = /var/lib/mysql/k09-bin
+binlog_format = ROW
+bind-address = 10.68.4.8
+
+Database db_shibuya_k09 memiliki tabel request_logs:
+- id           : BIGINT UNSIGNED, PRIMARY KEY, AUTO_INCREMENT
+- worker_name  : VARCHAR(64)
+- client_ip    : VARCHAR(45)
+- requested_at : TIMESTAMP, DEFAULT CURRENT_TIMESTAMP
+
+Di Master telah dibuat user repl_k09 (hak REPLICATION SLAVE)
+untuk inumaki, serta app_k09 (hak SELECT, INSERT) bagi worker.
+Jangan menulis password asli ke repository ataupun output demo.
+
+Cek di yaga:
+
+service mariadb status
+mariadb -e "SHOW DATABASES LIKE 'db_shibuya_k09';"
+mariadb -e "DESCRIBE db_shibuya_k09.request_logs;"
+mariadb -e "SHOW VARIABLES LIKE 'log_bin';"
+mariadb -e "SHOW VARIABLES LIKE 'binlog_format';"
+mariadb -e "SHOW MASTER STATUS\G"
+
+-> log_bin ON, format ROW, dan tabel request_logs tersedia.
+
+----------------------------------------------------------------
+LANGKAH 2: SETUP SLAVE inumaki
+----------------------------------------------------------------
+Konfigurasi Slave berada di:
+  /etc/mysql/mariadb.conf.d/60-k09-slave.cnf
+
+Parameter penting:
+[mysqld]
+server-id = 2
+relay-log = /var/lib/mysql/k09-relay
+read_only = ON
+bind-address = 10.68.4.9
+
+Snapshot database dari yaga disalin ke inumaki dan dicek hash SHA256
+sebelum import. Snapshot awal menggunakan binary log k09-bin.000001
+pada posisi 1251. Perintah CHANGE MASTER dan START SLAVE sudah
+dijalankan di inumaki. Angka posisi ini hanya untuk snapshot awal,
+jangan menjalankan CHANGE MASTER ulang tanpa mengambil snapshot baru.
+
+Untuk mengecek replikasi:
+
+mariadb -e "SHOW SLAVE STATUS\G" | grep -E 'Master_Host:|Slave_IO_Running:|Slave_SQL_Running:|Seconds_Behind_Master:|Last_IO_Error:|Last_SQL_Error:'
+
+-> Master_Host = 10.68.4.8
+-> Slave_IO_Running = Yes
+-> Slave_SQL_Running = Yes
+-> Seconds_Behind_Master = 0
+-> Last_IO_Error dan Last_SQL_Error kosong.
+
+----------------------------------------------------------------
+LANGKAH 3: PENGUJIAN INSERT & REPLIKASI
+----------------------------------------------------------------
+Dari Master yaga, sebelumnya dilakukan INSERT dengan:
+worker_name = TEST_REPLIKASI_13, client_ip = 10.68.4.8.
+
+Dari inumaki, pengujian koneksi TCP dengan user app_k09 juga
+menghasilkan entri TEST_REMOTE_13, client_ip = 10.68.4.9.
+Data tersebut terbaca pada Master maupun Slave.
+
+Di yaga dan inumaki jalankan:
+mariadb -e "SELECT id,worker_name,client_ip,requested_at FROM db_shibuya_k09.request_logs ORDER BY id LIMIT 5;"
+
+-> Baris pengujian awal sama pada kedua server.
+
+Akses port MariaDB Master dari tengen:
+timeout 3 bash -c 'echo > /dev/tcp/10.68.4.8/3306' \
+  && echo "PORT YAGA 3306 TERBUKA"
+
+----------------------------------------------------------------
+CARA DEMO KE ASISTEN (VERIFIKASI)
+----------------------------------------------------------------
+1. Yaga: tunjukkan SHOW MASTER STATUS dan struktur tabel.
+2. Inumaki: tunjukkan Slave_IO_Running/Slave_SQL_Running = Yes.
+3. Kedua node: tunjukkan baris INSERT yang sama.
+4. Tengen: tunjukkan port 3306 di Master dapat dijangkau.
+
+Screenshot: images/soal13/
+- 13-master-slave-replikasi-terbukti.png
+- 13-remote-insert-replikasi.png
+
+[ POIN PENJELASAN UNTUK DIUCAPKAN KE ASISTEN ]
+"Yaga kami jadikan MariaDB Master dan inumaki sebagai Slave.
+Perubahan pada tabel request_logs ditulis ke binary log Master,
+lalu disalin dan dijalankan oleh Slave. Status kedua thread replikasi
+bernilai Yes, dan data INSERT terbukti muncul di kedua database.
+Akses aplikasi dari Network 4 juga menggunakan akun terbatas."

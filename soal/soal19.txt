@@ -1,0 +1,103 @@
+================================================================
+PANDUAN PRAKTEK & DEMO: SOAL 19
+Topik: Cache Frontend 10 Menit dan Rate Limiting API 10r/s
+================================================================
+
+[ TUJUAN SOAL ]
+1. Menambahkan cache frontend pada reverse proxy Gojo.
+2. Mengatur masa cache respons sukses selama 10 menit.
+3. Menampilkan header X-Cache-Status MISS dan HIT.
+4. Membatasi request API menjadi 10 request/detik per IP.
+5. Membuktikan HTTP 429 muncul saat permintaan berlebihan.
+
+----------------------------------------------------------------
+LANGKAH 1: KONFIGURASI CACHE DAN RATE LIMIT
+----------------------------------------------------------------
+Di Gojo, file /etc/nginx/conf.d/k09-performance.conf:
+
+proxy_cache_path /var/cache/nginx/k09
+    levels=1:2
+    keys_zone=k09_cache:10m
+    max_size=50m
+    inactive=10m
+    use_temp_path=off;
+
+limit_req_zone $binary_remote_addr
+    zone=k09_api_limit:10m
+    rate=10r/s;
+
+Pada blok location / di /etc/nginx/sites-available/default:
+
+proxy_cache k09_cache;
+proxy_cache_valid 200 10m;
+proxy_cache_key "$scheme$host$request_uri";
+add_header X-Cache-Status $upstream_cache_status always;
+
+Pada blok location = /api:
+
+limit_req zone=k09_api_limit burst=10 nodelay;
+limit_req_status 429;
+
+Setelah menyunting konfigurasi, validasi:
+nginx -t
+service nginx reload
+
+CATATAN:
+Cache hanya diterapkan pada frontend (/), bukan /api.
+Angka 10r/s adalah kecepatan pembatasan; burst=10 mengizinkan
+lonjakan singkat sehingga jumlah HTTP 200 bukan selalu tepat 10.
+
+----------------------------------------------------------------
+LANGKAH 2: VERIFIKASI CACHE MISS DAN HIT
+----------------------------------------------------------------
+Di Gojo:
+
+echo "=== REQUEST PERTAMA ==="
+curl -sI -H 'Host: jujutsu.k09.com' \
+    http://127.0.0.1/ | grep -Ei 'HTTP/|X-Cache-Status'
+
+echo "=== REQUEST KEDUA ==="
+curl -sI -H 'Host: jujutsu.k09.com' \
+    http://127.0.0.1/ | grep -Ei 'HTTP/|X-Cache-Status'
+
+HASIL AKTUAL:
+Request 1 : HTTP 200, X-Cache-Status: MISS
+Request 2 : HTTP 200, X-Cache-Status: HIT
+
+Jika sudah HIT saat tes pertama karena cache pernah terisi,
+gunakan URL frontend baru untuk mencoba MISS lalu HIT.
+
+----------------------------------------------------------------
+LANGKAH 3: VERIFIKASI RATE LIMIT DARI KUSAKABE
+----------------------------------------------------------------
+Di kusakabe (10.68.3.10), kirim 50 request paralel:
+
+seq 1 50 | xargs -P 20 -I {} sh -c \
+'curl -s -o /dev/null -w "%{http_code}\n" --max-time 5 http://jujutsu.k09.com/api' \
+| sort | uniq -c
+
+HASIL AKTUAL PENGUJIAN:
+11 200
+39 429
+
+HTTP 200 berarti request diterima; 429 berarti request dibatasi.
+
+----------------------------------------------------------------
+CARA DEMO KE ASISTEN (VERIFIKASI)
+----------------------------------------------------------------
+1. Tunjukkan file pengaturan proxy_cache_path dan limit_req_zone.
+2. Jalankan dua curl dan tunjukkan MISS lalu HIT.
+3. Dari kusakabe, jalankan 50 request paralel.
+4. Tunjukkan status 200 dan 429, serta jelaskan burst=10.
+
+Screenshot: images/soal19/
+- 19-gojo-cache-miss-hit.png
+- 19-api-rate-limit.png
+
+[ POIN PENJELASAN UNTUK DIUCAPKAN KE ASISTEN ]
+"Di Gojo, frontend kami cache selama 10 menit. Request pertama
+menghasilkan MISS karena konten diambil dari backend, sementara
+request berikutnya menghasilkan HIT karena sudah tersimpan di cache.
+Endpoint /api tidak ikut dicache, tetapi dibatasi 10 request/detik
+per IP. Saat diuji dengan 50 request paralel dari Kusakabe,
+11 diterima dan 39 ditolak dengan HTTP 429."

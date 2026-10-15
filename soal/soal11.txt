@@ -1,0 +1,87 @@
+================================================================
+PANDUAN PRAKTEK & DEMO: SOAL 11
+Topik: DNS Master-Slave BIND9 pada utahime dan shoko
+================================================================
+
+[ TUJUAN SOAL ]
+1. Menjadikan utahime (10.68.1.2) sebagai DNS Master.
+2. Menjadikan shoko (10.68.1.3) sebagai DNS Slave.
+3. Mengelola zona forward jujutsu.k09.com dan reverse 1.68.10.in-addr.arpa.
+4. Membuktikan Slave mengikuti perubahan serial zona di Master.
+
+----------------------------------------------------------------
+LANGKAH 1: PERSIAPAN DNS MASTER DAN SLAVE
+----------------------------------------------------------------
+Di utahime dan shoko, gunakan BIND9. Pada Debian yang dipakai,
+nama service adalah "named", bukan selalu "bind9".
+
+apt-get update
+apt-get install -y bind9 bind9-utils dnsutils
+service named start
+
+Alamat server:
+- utahime / DNS Master : 10.68.1.2
+- shoko   / DNS Slave  : 10.68.1.3
+
+Pada utahime, /etc/bind/named.conf.local mendeklarasikan zona
+jujutsu.k09.com dan 1.68.10.in-addr.arpa dengan type master.
+Transfer zona diarahkan/diizinkan ke 10.68.1.3.
+
+Pada shoko, kedua zona tersebut menggunakan type slave dengan:
+masters { 10.68.1.2; };
+
+File hasil transfer zona di Slave berada di /var/cache/bind/.
+Nama file yang digunakan:
+db.jujutsu.k09.com dan db.1.68.10.in-addr.arpa
+
+Jangan menimpa file zona yang sudah benar. Untuk memperlihatkan
+konfigurasi yang sekarang terpasang, gunakan:
+
+cat /etc/bind/named.conf.local
+named-checkconf
+service named status
+
+----------------------------------------------------------------
+LANGKAH 2: VERIFIKASI MASTER DAN SLAVE
+----------------------------------------------------------------
+Di itadori atau client lain yang bisa menjangkau Network 1:
+
+dig @10.68.1.2 jujutsu.k09.com SOA +short
+dig @10.68.1.3 jujutsu.k09.com SOA +short
+
+-> Tunjukkan: kedua DNS dapat menjawab SOA zona yang sama.
+
+Untuk membuktikan sinkronisasi, serial di Master pernah dinaikkan
+dari 2026101501 menjadi 2026101502. Setelah transfer zona,
+SOA dari kedua DNS menampilkan serial baru yang sama.
+Pengujian tidak perlu mengubah serial lagi jika sudah sesuai.
+
+----------------------------------------------------------------
+CARA DEMO KE ASISTEN (VERIFIKASI)
+----------------------------------------------------------------
+1. Buka utahime:
+   cat /etc/bind/named.conf.local
+   dig @127.0.0.1 jujutsu.k09.com SOA +short
+   -> Master memiliki zona dan menjawab query.
+
+2. Buka shoko:
+   cat /etc/bind/named.conf.local
+   ls -l /var/cache/bind/
+   dig @127.0.0.1 jujutsu.k09.com SOA +short
+   -> Slave menyimpan hasil transfer dan serialnya sesuai Master.
+
+3. Buka itadori:
+   dig @10.68.1.2 jujutsu.k09.com SOA +short
+   dig @10.68.1.3 jujutsu.k09.com SOA +short
+   -> Jawaban dari Master dan Slave sama.
+
+Screenshot: images/soal11/
+- 11-utahime-master.png
+- 11-shoko-slave.png
+- 11-serial-sync-client.png
+
+[ POIN PENJELASAN UNTUK DIUCAPKAN KE ASISTEN ]
+"Utahime kami jadikan DNS Master dan shoko sebagai Slave. Kedua
+server mengelola zona jujutsu.k09.com, termasuk reverse zone.
+Slave mengambil data zona dari Master. Saat serial Master berubah,
+Slave menerima serial terbaru yang sama, jadi replikasinya berjalan."

@@ -1,0 +1,122 @@
+================================================================
+PANDUAN PRAKTEK & DEMO: SOAL 20
+Topik: ApacheBench 600 Request dan Analisis Rate Limiting
+================================================================
+
+[ TUJUAN SOAL ]
+1. Menguji frontend menggunakan ApacheBench 600 request, concurrency 30.
+2. Mencatat throughput, waktu respons, dan failed requests.
+3. Membandingkan performa API sebelum dan sesudah rate limiting.
+4. Memeriksa access log Gojo untuk status HTTP 200 dan 429.
+
+----------------------------------------------------------------
+LANGKAH 1: PERSIAPAN DI KUSAKABE
+----------------------------------------------------------------
+Client pengujian: kusakabe, IP 10.68.3.10 pada Network 3.
+Alat benchmark yang digunakan: ApacheBench (ab).
+
+Jika belum tersedia:
+command -v ab || apk add apache2-utils
+
+Pastikan DNS dan API dapat diakses:
+curl -sS -w '\nHTTP:%{http_code}\n' http://jujutsu.k09.com/api
+
+----------------------------------------------------------------
+LANGKAH 2: BENCHMARK FRONTEND 600 REQUEST, C=30
+----------------------------------------------------------------
+Di kusakabe:
+
+ab -l -n 600 -c 30 -s 10 \
+    http://jujutsu.k09.com/ \
+    | tee /root/k09-frontend-600.txt
+
+Opsi -l mengizinkan panjang body berbeda. Ini penting saat
+backend Maki dan Panda menghasilkan respons berbeda.
+
+HASIL AKTUAL:
+- Complete requests    : 600
+- Concurrency Level    : 30
+- Failed requests      : 0
+- Requests per second  : 5797.27 [#/sec]
+- Time per request     : 5.175 ms (mean)
+- Time taken for tests : 0.103 seconds
+- Persentil 95         : 7 ms
+- Request terlama      : 12 ms
+
+Perlu dicatat: frontend Gojo sudah memakai cache, sehingga
+pengujian ini mengukur respons lewat cache/reverse proxy,
+bukan performa frontend PHP tanpa cache.
+
+----------------------------------------------------------------
+LANGKAH 3: PERBANDINGAN API SEBELUM & SETELAH LIMIT
+----------------------------------------------------------------
+Baseline diambil sebelum aturan rate limit Gojo diaktifkan,
+jadi jangan mengulang tes saat ini dan menamai hasilnya baseline.
+
+Perintah yang dipakai untuk baseline dan tes setelah limit:
+ab -l -n 100 -c 20 -s 10 \
+    http://jujutsu.k09.com/api \
+    | tee /root/k09-api-baseline.txt
+
+Untuk tes setelah rate limit, output disimpan terpisah:
+ab -l -n 100 -c 20 -s 10 \
+    http://jujutsu.k09.com/api \
+    | tee /root/k09-api-limited.txt
+
+Hasil yang tercatat:
+
+PARAMETER                   SEBELUM          SETELAH
+---------------------------------------------------------
+Complete requests          100              100
+Concurrency level          20               20
+Failed requests            0                0
+Requests per second        439.00           93.78
+Time per request (mean)    45.559 ms        213.266 ms
+Non-2xx responses          tdk tercatat     88
+
+Catatan penting:
+"Failed requests: 0" bukan berarti semua HTTP 200.
+Respons 429 dicatat ApacheBench sebagai Non-2xx responses.
+
+----------------------------------------------------------------
+LANGKAH 4: VERIFIKASI ACCESS LOG GOJO
+----------------------------------------------------------------
+Di Gojo:
+
+grep '"GET /api ' /var/log/nginx/access.log \
+    | tail -n 100 \
+    | awk '{count[$9]++} END {for (s in count) print s, count[s]}' \
+    | sort -n
+
+grep '"GET /api ' /var/log/nginx/access.log | tail -n 10
+
+HASIL AKTUAL 100 REQUEST API TERAKHIR:
+200 : 12 request
+429 : 88 request
+
+Pada log juga terlihat IP Kusakabe 10.68.3.10. Angka 88 HTTP
+429 cocok dengan 88 Non-2xx responses pada hasil ApacheBench.
+
+----------------------------------------------------------------
+CARA DEMO KE ASISTEN (VERIFIKASI)
+----------------------------------------------------------------
+1. Tunjukkan output ab -n 600 -c 30 frontend.
+2. Jelaskan Requests per second, Time per request, Failed requests.
+3. Bandingkan baseline API dan hasil setelah rate limiting.
+4. Tunjukkan access log Gojo: 12 status 200, 88 status 429.
+5. Jelaskan bahwa limit menurunkan throughput karena request
+   berlebih sengaja ditolak, bukan semata karena backend error.
+
+Screenshot: images/soal20/
+- 20-benchmark-frontend-600-c30.png
+- 20-benchmark-api-sebelum-sesudah-rate-limit.png
+- 20-gojo-access-log-api-200-429.png
+
+[ POIN PENJELASAN UNTUK DIUCAPKAN KE ASISTEN ]
+"Dari Kusakabe, kami menjalankan 600 request dengan 30 concurrency
+ke frontend. Semua request selesai tanpa gagal, sekitar 5797 request
+per detik dengan waktu rata-rata 5,175 ms. Untuk API, sebelum
+pembatasan tercatat 439 request/detik dan setelahnya 93,78
+request/detik. Access log Gojo menunjukkan 88 respons 429 dan
+12 respons 200, sesuai hasil Non-2xx pada ApacheBench.
+Ini membuktikan aturan rate limiting bekerja."

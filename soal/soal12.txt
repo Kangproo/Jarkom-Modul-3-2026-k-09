@@ -1,0 +1,87 @@
+================================================================
+PANDUAN PRAKTEK & DEMO: SOAL 12
+Topik: Record DNS A, CNAME, PTR dan Forwarder
+================================================================
+
+[ TUJUAN SOAL ]
+1. Mengarahkan jujutsu.k09.com ke Gojo (10.68.1.4).
+2. Menyediakan CNAME untuk www.jujutsu.k09.com.
+3. Menyiapkan PTR untuk pencarian reverse IP Gojo.
+4. Membuktikan DNS Master dan Slave juga bisa me-resolve domain luar.
+
+----------------------------------------------------------------
+LANGKAH 1: RECORD DNS INTERNAL
+----------------------------------------------------------------
+Pada zona forward di utahime terdapat:
+- A     jujutsu.k09.com       -> 10.68.1.4
+- CNAME www.jujutsu.k09.com   -> jujutsu.k09.com
+
+Pada zona reverse 1.68.10.in-addr.arpa, PTR digunakan untuk IP
+Gojo 10.68.1.4. Data ini ikut ditransfer dari Master ke Slave.
+
+Untuk memeriksa record dari itadori:
+
+dig @10.68.1.2 jujutsu.k09.com A +noall +answer
+dig @10.68.1.3 jujutsu.k09.com A +noall +answer
+
+dig @10.68.1.2 www.jujutsu.k09.com CNAME +noall +answer
+dig @10.68.1.3 www.jujutsu.k09.com CNAME +noall +answer
+
+dig @10.68.1.2 -x 10.68.1.4 +short
+dig @10.68.1.3 -x 10.68.1.4 +short
+
+-> Tunjukkan: record yang dijawab oleh dua DNS server sesuai.
+
+----------------------------------------------------------------
+LANGKAH 2: KONFIGURASI FORWARDER
+----------------------------------------------------------------
+Pada kedua node DNS, /etc/bind/named.conf.options berisi pengaturan
+rekursi dan forwarder menuju gateway DNS NAT 192.168.122.1.
+
+Bagian konfigurasi yang digunakan:
+
+options {
+    directory "/var/cache/bind";
+    recursion yes;
+    forwarders { 192.168.122.1; };
+    forward only;
+};
+
+Akses query/recursion jaringan 10.68.0.0/16 juga telah diizinkan
+pada konfigurasi aktif. Jangan mengganti keseluruhan file hanya
+dengan cuplikan di atas karena masih ada opsi akses yang diperlukan.
+
+Untuk mengecek konfigurasi:
+
+named-checkconf
+service named status
+
+----------------------------------------------------------------
+LANGKAH 3: TEST QUERY DOMAIN EKSTERNAL
+----------------------------------------------------------------
+Di itadori:
+
+dig @10.68.1.2 google.com +short
+dig @10.68.1.3 google.com +short
+ping -c 3 google.com
+
+-> Master dan Slave dapat menjawab query google.com.
+-> Ping berhasil setelah NAT jichi aktif.
+
+----------------------------------------------------------------
+CARA DEMO KE ASISTEN (VERIFIKASI)
+----------------------------------------------------------------
+1. Tunjukkan hasil dig record A, CNAME, PTR dari kedua DNS.
+2. Tunjukkan forwarder di named.conf.options.
+3. Tunjukkan dig google.com melalui Master dan Slave, serta ping.
+
+Screenshot: images/soal12/
+- 12-dns-records-client.png
+- 12-forwarder-ping-client.png
+
+[ POIN PENJELASAN UNTUK DIUCAPKAN KE ASISTEN ]
+"Record A domain jujutsu.k09.com mengarah ke Gojo 10.68.1.4.
+Nama www menggunakan CNAME, sedangkan pencarian IP balik
+menggunakan PTR. DNS Master dan Slave juga kami atur forwarder
+ke 192.168.122.1, sehingga domain luar seperti google.com
+bisa di-resolve melalui kedua DNS server."
