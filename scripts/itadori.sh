@@ -16,7 +16,7 @@ ip addr flush dev eth0
 # -c itadori : Client ID (Option 61 - sesuai instruksi Soal 4)
 # -H itadori : Hostname (Option 12)
 # -s /usr/share/udhcpc/default.script : script default Alpine
-udhcpc -i eth0 -H itadori -s /usr/share/udhcpc/default.script
+udhcpc -i eth0
 
 echo ""
 echo "=== Verifikasi itadori ==="

@@ -47,7 +47,7 @@ LANGKAH 3: RENEW LEASE DI kugisaki
 Buka terminal node: kugisaki
 Jalankan perintah ini untuk menarik IP baru:
 killall udhcpc 2>/dev/null
-udhcpc -i eth0 -H kugisaki
+udhcpc -i eth0
 
 
 ----------------------------------------------------------------

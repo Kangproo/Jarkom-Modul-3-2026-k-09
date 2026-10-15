@@ -40,9 +40,9 @@ LANGKAH 2: EKSEKUSI DI KLIEN NETWORK 3
 ----------------------------------------------------------------
 Buka terminal klien masing-masing dan jalankan:
 
-[ ino ]      : killall udhcpc 2>/dev/null; udhcpc -i eth0 -H ino
-[ kusakabe ] : killall udhcpc 2>/dev/null; udhcpc -i eth0 -H kusakabe
-[ miwa ]     : killall udhcpc 2>/dev/null; udhcpc -i eth0 -H miwa
+[ ino ]      : killall udhcpc 2>/dev/null; udhcpc -i eth0
+[ kusakabe ] : killall udhcpc 2>/dev/null; udhcpc -i eth0
+[ miwa ]     : killall udhcpc 2>/dev/null; udhcpc -i eth0
 
 
 ----------------------------------------------------------------

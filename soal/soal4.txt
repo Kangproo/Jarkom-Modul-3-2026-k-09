@@ -90,10 +90,10 @@ Atau jalankan perintah langsung di terminal klien:
 ----------------------------------------------------------------
 Buka masing-masing terminal klien dan jalankan perintah:
 
-[ itadori ]   : killall udhcpc 2>/dev/null; udhcpc -i eth0 -H itadori
-[ fushiguro ] : killall udhcpc 2>/dev/null; udhcpc -i eth0 -H fushiguro
-[ zenin ]     : killall udhcpc 2>/dev/null; udhcpc -i eth0 -H zenin
-[ okkotsu ]   : killall udhcpc 2>/dev/null; udhcpc -i eth0 -H okkotsu
+[ itadori ]   : killall udhcpc 2>/dev/null; udhcpc -i eth0
+[ fushiguro ] : killall udhcpc 2>/dev/null; udhcpc -i eth0
+[ zenin ]     : killall udhcpc 2>/dev/null; udhcpc -i eth0
+[ okkotsu ]   : killall udhcpc 2>/dev/null; udhcpc -i eth0
 
 
 ----------------------------------------------------------------
