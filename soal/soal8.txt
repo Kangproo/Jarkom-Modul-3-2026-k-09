@@ -5,58 +5,73 @@ Topik: Packet Capture 4 Tahapan DHCP (DORA) & Verifikasi giaddr
 
 [ TUJUAN SOAL ]
 1. Merekam transaksi DHCP saat klien meminta lease baru.
-2. Memperlihatkan urutan transaksi 4 tahapan:
-   DHCPDISCOVER -> DHCPOFFER -> DHCPREQUEST -> DHCPACK
-3. Memvalidasi nilai field giaddr sesuai interface jichi penerima request.
+2. Memperlihatkan urutan DHCPDISCOVER -> DHCPOFFER -> DHCPREQUEST -> DHCPACK.
+3. Memvalidasi nilai giaddr sesuai interface jichi yang menerima request.
 
 ----------------------------------------------------------------
-SKENARIO DEMO LANGKAH DEMI LANGKAH
+PERINTAH PENGUJIAN
 ----------------------------------------------------------------
 
-LANGKAH 1: JALANKAN CAPTURE DI SERVER
-Buka terminal node: tengen (10.68.4.10)
-Ketik perintah berikut; terminal akan menunggu paket:
+Pada tengen (10.68.4.10), mulai capture:
 tcpdump -i eth0 -n -vvv 'port 67 or port 68'
 
-LANGKAH 2: TRIGGER REQUEST DI KLIEN
-Buka terminal node: itadori (jangan tutup terminal tengen).
-Jalankan perintah untuk meminta lease baru:
+Pada itadori, minta lease baru:
 killall udhcpc 2>/dev/null
 ip addr flush dev eth0
-udhcpc -i eth0 -x hostname:itadori
+udhcpc -f -v -i eth0 -x hostname:itadori
 
--x hostname:itadori mengirim hostname DHCP (Option 12), yang dicocokkan oleh class pool1.
-Opsi ini kompatibel dengan versi BusyBox udhcpc pada node Alpine.
+Opsi -x hostname:itadori mengirim DHCP Host Name (Option 12), yang cocok
+dengan class pool1. Opsi ini kompatibel dengan BusyBox udhcpc di Alpine.
 
-LANGKAH 3: LIHAT HASIL DI TERMINAL TENGEN
-Jika transaksi berhasil, cari urutan berikut pada output tcpdump:
-1. DHCPDISCOVER: request yang diteruskan relay; Gateway-IP/giaddr seharusnya 10.68.2.1.
-2. DHCPOFFER: server tengen (10.68.4.10) menawarkan IP klien dari Pool 1,
-   yaitu rentang 10.68.2.10 sampai 10.68.2.35.
-3. DHCPREQUEST: klien meminta alamat yang ditawarkan; giaddr tetap 10.68.2.1.
-4. DHCPACK: server mengonfirmasi lease untuk alamat yang ditawarkan.
+----------------------------------------------------------------
+HASIL AKTUAL DARI PACKET CAPTURE
+----------------------------------------------------------------
 
-Alamat klien yang ditawarkan tidak harus selalu 10.68.2.10; alamatnya dapat
-berbeda selama masih berada dalam Pool 1 dan tersedia.
+Capture menunjukkan transaksi DORA lengkap dengan nilai berikut:
 
-Perhatikan field Gateway-IP (nama tampilannya bisa berbeda menurut versi tcpdump):
-giaddr = 10.68.2.1
-Alamat ini adalah IP interface eth2 pada router jichi, yang terhubung ke Network 2.
-Jangan gunakan kugisaki untuk demo ini karena kugisaki berada di Network 3 dan
-giaddr yang diharapkan untuknya adalah 10.68.3.1.
+1. DHCPDISCOVER
+   - Relay meneruskan request dari 10.68.4.1 ke DHCP server 10.68.4.10.
+   - Gateway-IP/giaddr: 10.68.2.1.
+   - Hostname: itadori.
+   - MAC klien: 02:42:94:0f:6d:00.
+
+2. DHCPOFFER
+   - Server: 10.68.4.10.
+   - Alamat yang ditawarkan (Your-IP): 10.68.2.10.
+   - Gateway-IP/giaddr: 10.68.2.1.
+   - Lease time: 600 detik.
+
+3. DHCPREQUEST
+   - Klien meminta alamat 10.68.2.10.
+   - Server Identifier: 10.68.4.10.
+   - Gateway-IP/giaddr: 10.68.2.1.
+
+4. DHCPACK
+   - Server mengonfirmasi lease untuk 10.68.2.10.
+   - Gateway-IP/giaddr: 10.68.2.1.
+   - Lease time: 600 detik.
+
+Kesimpulan: keempat pesan DORA terlihat pada capture. Klien itadori berhasil
+mendapatkan 10.68.2.10 dari Pool 1 (10.68.2.10-10.68.2.35), dan giaddr
+bernilai 10.68.2.1 sesuai interface eth2 pada router jichi.
+
+Catatan: lease time yang terlihat adalah 600 detik (10 menit), sesuai dengan
+default-lease-time global di dhcpd.conf. Pool Network 2 tidak menetapkan
+lease khusus. Pengaturan 1800 dan 43200 detik pada Soal 5 berlaku di Network 3.
 
 ----------------------------------------------------------------
 POIN PENJELASAN UNTUK DIUCAPKAN KE ASISTEN
 ----------------------------------------------------------------
-"Kami menjalankan tcpdump pada eth0 tengen untuk melihat empat pesan DHCP:
-Discover, Offer, Request, dan Ack. Klien yang diuji adalah itadori di Network 2,
-jadi field giaddr yang diharapkan adalah 10.68.2.1, yaitu IP eth2 jichi.
-Server menggunakan informasi subnet tersebut untuk memberikan alamat dari
-Pool 1 Network 2, yaitu rentang 10.68.2.10 sampai 10.68.2.35."
+"Kami menjalankan tcpdump di tengen dan meminta lease baru dari itadori.
+Capture menunjukkan Discover, Offer, Request, dan Ack. IP yang diberikan
+adalah 10.68.2.10 dari server 10.68.4.10. Field giaddr bernilai 10.68.2.1,
+yaitu alamat interface eth2 jichi yang terhubung ke Network 2. Lease time
+yang terbaca pada Offer dan Ack adalah 600 detik."
 
 ----------------------------------------------------------------
 SCREENSHOT YANG PERLU DISIAPKAN
 ----------------------------------------------------------------
-1. images/soal8/tcpdump-dora-giaddr.png - capture DHCPDISCOVER, DHCPOFFER,
-   DHCPREQUEST, dan field Gateway-IP/giaddr 10.68.2.1.
-2. images/soal8/tcpdump-ack.png - capture DHCPACK.
+1. images/soal8/tcpdump-dora-part1.png - DHCPDISCOVER dan DHCPOFFER,
+   termasuk giaddr 10.68.2.1 dan alamat yang ditawarkan 10.68.2.10.
+2. images/soal8/tcpdump-dora-part2.png - DHCPREQUEST dan DHCPACK,
+   termasuk Server Identifier 10.68.4.10 dan lease time 600 detik.
