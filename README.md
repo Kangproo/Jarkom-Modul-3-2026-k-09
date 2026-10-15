@@ -464,10 +464,10 @@ Saat `tcpdump` menunggu paket, buka terminal `itadori` dan jalankan:
 ```sh
 killall udhcpc 2>/dev/null
 ip addr flush dev eth0
-udhcpc -i eth0 -c itadori -H itadori
+udhcpc -i eth0 -x hostname:itadori
 ```
 
-`-c itadori` mengirim Client ID (Option 61), sedangkan `-H itadori` mengirim hostname (Option 12). Hostname ini yang dicocokkan oleh class `pool1` pada konfigurasi DHCP server.
+`-x hostname:itadori` mengirim hostname DHCP (Option 12), yang dicocokkan oleh class `pool1` pada konfigurasi DHCP server. Opsi ini digunakan karena versi BusyBox `udhcpc` pada node Alpine tidak mendukung `-c` dan `-H`.
 
 Jika transaksi berhasil, cari empat pesan berikut pada capture `tengen`:
 1. `DHCPDISCOVER`: request yang diteruskan relay; field `Gateway-IP`/`giaddr` diharapkan bernilai `10.68.2.1`.
