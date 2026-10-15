@@ -39,7 +39,7 @@ service isc-dhcp-relay status
 FASE 4: KLIEN MENCOBA KEMBALI
 Kembali ke terminal node: itadori
 Jalankan:
-udhcpc -i eth0 -c itadori -H itadori
+udhcpc -i eth0 -H itadori
 ip addr show eth0
 -> Tunjukkan ke asisten: Klien langsung berhasil memperoleh IP dari Pool 1 semula.
 

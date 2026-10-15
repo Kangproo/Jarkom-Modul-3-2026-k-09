@@ -264,7 +264,7 @@ Eksekusi request dari klien (contoh itadori):
 
 ```sh
 killall udhcpc 2>/dev/null
-udhcpc -i eth0 -c itadori -H itadori -s /usr/share/udhcpc/default.script
+udhcpc -i eth0 -H itadori -s /usr/share/udhcpc/default.script
 ```
 
 Verifikasi alamat IP klien Pool 1 (itadori / fushiguro):
@@ -393,7 +393,7 @@ Renew lease pada kugisaki:
 
 ```sh
 killall udhcpc 2>/dev/null
-udhcpc -i eth0 -c kugisaki -H kugisaki -s /usr/share/udhcpc/default.script
+udhcpc -i eth0 -H kugisaki -s /usr/share/udhcpc/default.script
 ```
 
 Verifikasi IP kugisaki:
@@ -455,7 +455,7 @@ Lakukan request dari salah satu klien:
 ```sh
 killall udhcpc 2>/dev/null
 ip addr flush dev eth0
-udhcpc -i eth0 -c itadori -H itadori
+udhcpc -i eth0 -H itadori
 ```
 
 Output mencatat urutan transaksi:
@@ -507,7 +507,7 @@ service isc-dhcp-relay status
 Klien meminta ulang lease dan kembali berhasil memperoleh IP dari pool semula:
 
 ```sh
-udhcpc -i eth0 -c itadori -H itadori -s /usr/share/udhcpc/default.script
+udhcpc -i eth0 -H itadori -s /usr/share/udhcpc/default.script
 ip addr show eth0
 ```
 

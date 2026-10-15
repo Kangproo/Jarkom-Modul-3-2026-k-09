@@ -23,11 +23,11 @@ Buka terminal node: itadori (jangan tutup terminal tengen)
 Ketik perintah untuk melepaskan dan meminta IP baru:
 killall udhcpc 2>/dev/null
 ip addr flush dev eth0
-udhcpc -i eth0 -c itadori -H itadori
+udhcpc -i eth0 -H itadori
 
 LANGKAH 3: LIHAT HASIL DI TERMINAL TENGEN
 Kembali ke terminal tengen dan amati output tcpdump:
-1. DHCPDISCOVER: Paket pertama dari client melalui relay.
+1. DHCPDISCOVER: Paket pertama dari relay.
 2. DHCPOFFER: Tawaran IP dari tengen (10.68.4.10).
 3. DHCPREQUEST: Permintaan resmi klien.
 4. DHCPACK: Konfirmasi persetujuan dari server.

@@ -195,7 +195,6 @@ iface lo inet loopback
 auto eth0
 iface eth0 inet dhcp
     hostname itadori
-    client itadori
 
 [ fushiguro - Pool 1 ]
 auto lo
@@ -204,7 +203,6 @@ iface lo inet loopback
 auto eth0
 iface eth0 inet dhcp
     hostname fushiguro
-    client fushiguro
 
 [ zenin - Pool 2 ]
 auto lo
@@ -213,7 +211,6 @@ iface lo inet loopback
 auto eth0
 iface eth0 inet dhcp
     hostname zenin
-    client zenin
 
 [ okkotsu - Pool 2 ]
 auto lo
@@ -222,7 +219,6 @@ iface lo inet loopback
 auto eth0
 iface eth0 inet dhcp
     hostname okkotsu
-    client okkotsu
 
 
 --------------------------------------------------------------------------------
@@ -236,7 +232,6 @@ iface lo inet loopback
 auto eth0
 iface eth0 inet dhcp
     hostname ino
-    client ino
 
 [ kusakabe - Short Lease 1800s ]
 auto lo
@@ -245,7 +240,6 @@ iface lo inet loopback
 auto eth0
 iface eth0 inet dhcp
     hostname kusakabe
-    client kusakabe
 
 [ miwa - Long Lease 43200s ]
 auto lo
@@ -254,7 +248,6 @@ iface lo inet loopback
 auto eth0
 iface eth0 inet dhcp
     hostname miwa
-    client miwa
 
 [ kugisaki - Fixed Address VIP (10.68.3.99) ]
 auto lo
@@ -263,4 +256,3 @@ iface lo inet loopback
 auto eth0
 iface eth0 inet dhcp
     hostname kugisaki
-    client kugisaki

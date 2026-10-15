@@ -16,7 +16,7 @@ ip addr flush dev eth0
 # -c miwa : Client ID (Option 61 - sesuai instruksi Soal 4)
 # -H miwa : Hostname (Option 12)
 # -s /usr/share/udhcpc/default.script : script default Alpine
-udhcpc -i eth0 -c miwa -H miwa -s /usr/share/udhcpc/default.script
+udhcpc -i eth0 -H miwa -s /usr/share/udhcpc/default.script
 
 echo ""
 echo "=== Verifikasi miwa ==="

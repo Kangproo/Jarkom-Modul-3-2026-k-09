@@ -85,16 +85,15 @@ lewat Klik Kanan Klien -> Edit network configuration:
 auto eth0
 iface eth0 inet dhcp
     hostname <nama_klien>
-    client <nama_klien>
 
 Atau jalankan perintah langsung di terminal klien:
 ----------------------------------------------------------------
 Buka masing-masing terminal klien dan jalankan perintah:
 
-[ itadori ]   : killall udhcpc 2>/dev/null; udhcpc -i eth0 -c itadori -H itadori
-[ fushiguro ] : killall udhcpc 2>/dev/null; udhcpc -i eth0 -c fushiguro -H fushiguro
-[ zenin ]     : killall udhcpc 2>/dev/null; udhcpc -i eth0 -c zenin -H zenin
-[ okkotsu ]   : killall udhcpc 2>/dev/null; udhcpc -i eth0 -c okkotsu -H okkotsu
+[ itadori ]   : killall udhcpc 2>/dev/null; udhcpc -i eth0 -H itadori
+[ fushiguro ] : killall udhcpc 2>/dev/null; udhcpc -i eth0 -H fushiguro
+[ zenin ]     : killall udhcpc 2>/dev/null; udhcpc -i eth0 -H zenin
+[ okkotsu ]   : killall udhcpc 2>/dev/null; udhcpc -i eth0 -H okkotsu
 
 
 ----------------------------------------------------------------
