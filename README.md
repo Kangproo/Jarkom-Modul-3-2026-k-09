@@ -691,15 +691,15 @@ Serial zona forward dinaikkan dari `2026101501` menjadi `2026101502` pada Master
 
 **Nama file foto:** `images/soal11/11-utahime-master.png`
 
-<!-- ![Status zona DNS Master utahime](images/soal11/11-utahime-master.png) -->
+![Status zona DNS Master utahime](images/soal11/11-utahime-master.png)
 
 **Nama file foto:** `images/soal11/11-shoko-slave.png`
 
-<!-- ![Status zona DNS Slave shoko](images/soal11/11-shoko-slave.png) -->
+![Status zona DNS Slave shoko](images/soal11/11-shoko-slave.png)
 
 **Nama file foto:** `images/soal11/11-serial-sync-client.png`
 
-<!-- ![Pemeriksaan sinkronisasi serial Master dan Slave](images/soal11/11-serial-sync-client.png) -->
+![Pemeriksaan sinkronisasi serial Master dan Slave](images/soal11/11-serial-sync-client.png)
 
 ---
 
@@ -742,11 +742,11 @@ Hasilnya, record internal dapat dijawab oleh Master maupun Slave. Domain ekstern
 
 **Nama file foto:** `images/soal12/12-dns-records-client.png`
 
-<!-- ![Pengujian record A CNAME dan PTR](images/soal12/12-dns-records-client.png) -->
+![Pengujian record A CNAME dan PTR](images/soal12/12-dns-records-client.png)
 
 **Nama file foto:** `images/soal12/12-forwarder-ping-client.png`
 
-<!-- ![Pengujian forwarder dan ping domain eksternal](images/soal12/12-forwarder-ping-client.png) -->
+![Pengujian forwarder dan ping domain eksternal](images/soal12/12-forwarder-ping-client.png)
 
 ---
 
@@ -863,11 +863,11 @@ Akses port `3306` yaga dari tengen juga berhasil diuji. Dengan hasil tersebut, k
 
 **Nama file foto:** `images/soal13/13-master-slave-replikasi-terbukti.png`
 
-<!-- ![Status dan hasil sinkronisasi MariaDB Master Slave](images/soal13/13-master-slave-replikasi-terbukti.png) -->
+![Status dan hasil sinkronisasi MariaDB Master Slave](images/soal13/13-master-slave-replikasi-terbukti.png)
 
 **Nama file foto:** `images/soal13/13-remote-insert-replikasi.png`
 
-<!-- ![Data INSERT remote yang tersinkron ke Slave](images/soal13/13-remote-insert-replikasi.png) -->
+![Data INSERT remote yang tersinkron ke Slave](images/soal13/13-remote-insert-replikasi.png)
 
 ---
 
@@ -922,7 +922,7 @@ Halaman berhasil dijalankan oleh PHP-FPM dan menampilkan nama server `maki` atau
 
 **Nama file foto:** `images/soal14/14-frontend-maki-panda-php-berhasil.png`
 
-<!-- ![Hasil halaman frontend PHP pada maki dan panda](images/soal14/14-frontend-maki-panda-php-berhasil.png) -->
+![Hasil halaman frontend PHP pada maki dan panda](images/soal14/14-frontend-maki-panda-php-berhasil.png)
 
 ### API worker nanami, todo, dan kirara
 
@@ -1030,7 +1030,7 @@ Hasil pengujian menunjukkan 31 request ditangani Nanami dan 9 request oleh Todo.
 
 **Nama file foto:** `images/soal15/15-geto-weighted-load-balancing.png`
 
-<!-- ![Hasil weighted load balancing Nanami dan Todo](images/soal15/15-geto-weighted-load-balancing.png) -->
+![Hasil weighted load balancing Nanami dan Todo](images/soal15/15-geto-weighted-load-balancing.png)
 
 ---
 
@@ -1091,11 +1091,11 @@ DNS mengembalikan `10.68.1.4`, frontend menampilkan identitas Maki dan Panda, se
 
 **Nama file foto:** `images/soal16/16-domain-reverse-proxy-gojo.png`
 
-<!-- ![Pengujian DNS dan frontend melalui domain](images/soal16/16-domain-reverse-proxy-gojo.png) -->
+![Pengujian DNS dan frontend melalui domain](images/soal16/16-domain-reverse-proxy-gojo.png)
 
 **Nama file foto:** `images/soal16/16-api-json-domain-client.png`
 
-<!-- ![Pengujian JSON API melalui domain](images/soal16/16-api-json-domain-client.png) -->
+![Pengujian JSON API melalui domain](images/soal16/16-api-json-domain-client.png)
 
 ---
 
@@ -1151,15 +1151,17 @@ Kusakabe memperoleh `10.68.3.10/24` dengan lease 1800 detik. Setelah mengakses A
 
 **Nama file foto:** `images/soal17/17-ip-asli-client-database-network2.png`
 
-<!-- ![IP asli itadori tercatat pada database](images/soal17/17-ip-asli-client-database-network2.png) -->
+![IP asli itadori tercatat pada database](images/soal17/17-ip-asli-client-database-network2.png)
 
 **Nama file foto:** `images/soal17/17-dhcp-kusakabe-api-network3.png`
 
-<!-- ![Kusakabe memperoleh DHCP dan mengakses API](images/soal17/17-dhcp-kusakabe-api-network3.png) -->
+![Kusakabe memperoleh DHCP dan mengakses API](images/soal17/17-dhcp-kusakabe-api-network3.png)
 
 **Nama file foto:** `images/soal17/17-ip-asli-client-network3-database-yaga.png`
 
 <!-- ![IP asli kusakabe tercatat pada database Yaga](images/soal17/17-ip-asli-client-network3-database-yaga.png) -->
+
+*Foto database Yaga untuk Network 3 belum tersedia di repository.*
 
 ---
 
@@ -1203,7 +1205,7 @@ Setelah pengujian, Nginx pada Nanami dan Todo dinyalakan kembali. Pembagian 12 r
 
 **Nama file foto:** `images/soal18/18-kirara-failover.png`
 
-<!-- ![Pengujian failover API ke kirara](images/soal18/18-kirara-failover.png) -->
+![Pengujian failover API ke kirara](images/soal18/18-kirara-failover.png)
 
 ---
 
@@ -1251,7 +1253,7 @@ Pada hasil pengujian, request pertama memberikan `X-Cache-Status: MISS` dan requ
 
 **Nama file foto:** `images/soal19/19-gojo-cache-miss-hit.png`
 
-<!-- ![Verifikasi frontend cache MISS dan HIT](images/soal19/19-gojo-cache-miss-hit.png) -->
+![Verifikasi frontend cache MISS dan HIT](images/soal19/19-gojo-cache-miss-hit.png)
 
 ### Rate limit API per alamat IP
 
@@ -1274,7 +1276,7 @@ Hasilnya 11 request mendapat HTTP `200` dan 39 request mendapat HTTP `429`. Arti
 
 **Nama file foto:** `images/soal19/19-api-rate-limit.png`
 
-<!-- ![Pengujian pembatasan request API](images/soal19/19-api-rate-limit.png) -->
+![Pengujian pembatasan request API](images/soal19/19-api-rate-limit.png)
 
 ---
 
@@ -1307,7 +1309,7 @@ Sebanyak 600 request selesai tanpa kegagalan. Pengujian dilakukan setelah cache 
 
 **Nama file foto:** `images/soal20/20-benchmark-frontend-600-c30.png`
 
-<!-- ![Hasil benchmark frontend 600 request](images/soal20/20-benchmark-frontend-600-c30.png) -->
+![Hasil benchmark frontend 600 request](images/soal20/20-benchmark-frontend-600-c30.png)
 
 ### Perbandingan API sebelum dan sesudah rate limiting
 
@@ -1340,7 +1342,7 @@ Setelah rate limit aktif, throughput API menjadi lebih rendah karena sebagian re
 
 **Nama file foto:** `images/soal20/20-benchmark-api-sebelum-sesudah-rate-limit.png`
 
-<!-- ![Perbandingan benchmark API sebelum dan sesudah rate limiting](images/soal20/20-benchmark-api-sebelum-sesudah-rate-limit.png) -->
+![Perbandingan benchmark API sebelum dan sesudah rate limiting](images/soal20/20-benchmark-api-sebelum-sesudah-rate-limit.png)
 
 ### Verifikasi access log Nginx Gojo
 
@@ -1359,4 +1361,4 @@ Log memperlihatkan 12 respons HTTP `200` dan 88 respons HTTP `429` dari IP Kusak
 
 **Nama file foto:** `images/soal20/20-gojo-access-log-api-200-429.png`
 
-<!-- ![Rekap HTTP 200 dan 429 pada access log Gojo](images/soal20/20-gojo-access-log-api-200-429.png) -->
+![Rekap HTTP 200 dan 429 pada access log Gojo](images/soal20/20-gojo-access-log-api-200-429.png)
