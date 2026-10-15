@@ -507,16 +507,22 @@ Alamat yang diharapkan pada hasil uji ini adalah `10.68.2.10/24` dengan gateway 
 
 ## 9. Pengujian Gangguan DHCP Relay dan Pemulihan
 
-Uji ketahanan sistem dilakukan dengan mematikan service relay pada router jichi.
+Pengujian dilakukan menggunakan klien `itadori` di Network 2. Itadori dipilih karena mendapatkan IP secara dinamis dari Pool 1 (`10.68.2.10`–`10.68.2.35`), sehingga pengujian ini benar-benar memeriksa proses permintaan lease DHCP. Berbeda dengan `kugisaki`, yang menggunakan static lease.
 
-Hentikan DHCP Relay di jichi:
+### Fase 1 — Matikan DHCP Relay pada jichi
+
+Jalankan pada node `jichi`:
 
 ```bash
 service isc-dhcp-relay stop
 service isc-dhcp-relay status
 ```
 
-Klien (contoh kugisaki) dipaksa meminta lease baru:
+Pastikan status service menunjukkan bahwa relay berhenti.
+
+### Fase 2 — Buktikan permintaan lease gagal pada itadori
+
+Jalankan pada node `itadori`:
 
 ```sh
 killall udhcpc 2>/dev/null
@@ -524,29 +530,39 @@ ip addr flush dev eth0
 udhcpc -i eth0 -t 3 -T 2
 ```
 
-Klien mengalami timeout dan tidak memperoleh IP karena paket discover tidak diteruskan ke tengen.
+Saat relay berhenti, permintaan DHCPDISCOVER dari itadori tidak diteruskan ke server `tengen`. Output seharusnya menunjukkan beberapa percobaan `sending discover` yang berakhir dengan timeout, dan itadori tidak memperoleh alamat IP.
 
 **Nama file foto:** `images/soal9/relay-down-timeout.png`
 
-![Kegagalan request saat relay nonaktif](images/soal9/relay-down-timeout.png)
+![Kegagalan request DHCP saat relay nonaktif pada itadori](images/soal9/relay-down-timeout.png)
 
-Layanan relay dinyalakan kembali di jichi:
+### Fase 3 — Pulihkan DHCP Relay pada jichi
+
+Jalankan kembali pada node `jichi`:
 
 ```bash
 service isc-dhcp-relay start
 service isc-dhcp-relay status
 ```
 
-Klien meminta ulang lease dan kembali berhasil memperoleh IP dari pool semula:
+Pastikan service relay kembali aktif sebelum klien mencoba meminta IP lagi.
+
+### Fase 4 — Minta lease kembali dari itadori
+
+Jalankan pada node `itadori`:
 
 ```sh
-udhcpc -i eth0
+udhcpc -i eth0 -H itadori
 ip addr show eth0
 ```
 
+Setelah relay aktif, itadori seharusnya kembali memperoleh alamat IP dinamis dari Pool 1, yaitu rentang `10.68.2.10`–`10.68.2.35`. Catat alamat yang benar-benar muncul pada hasil pengujian.
+
 **Nama file foto:** `images/soal9/relay-recovered.png`
 
-![Klien kembali memperoleh IP setelah relay aktif](images/soal9/relay-recovered.png)
+![Itadori kembali memperoleh IP setelah relay aktif](images/soal9/relay-recovered.png)
+
+Pengujian ini menunjukkan bahwa ketika DHCP Relay pada jichi berhenti, permintaan DHCP dari Network 2 tidak dapat mencapai tengen sehingga klien mengalami timeout. Setelah relay dijalankan kembali, permintaan dapat diteruskan dan itadori kembali memperoleh lease dari pool yang sesuai.
 
 ---
 
