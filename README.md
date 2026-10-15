@@ -380,7 +380,7 @@ Tambahkan deklarasi host pada `/etc/dhcp/dhcpd.conf` di tengen:
 
 ```text
 host kugisaki {
-    hardware ethernet aa:bb:cc:dd:ee:ff;   # disesuaikan dengan MAC asli kugisaki
+    hardware ethernet 02:42:97:3f:1c:00;
     fixed-address 10.68.3.99;
     option routers 10.68.3.1;
     option broadcast-address 10.68.3.255;

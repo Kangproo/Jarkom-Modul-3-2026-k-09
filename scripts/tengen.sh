@@ -128,13 +128,12 @@ subnet 10.68.3.0 netmask 255.255.255.0 {
 # Ganti MAC_ADDRESS_KUGISAKI dengan MAC asli container kugisaki!
 # Cek di kugisaki: ip link show eth0 | grep ether
 host kugisaki {
-    # Ganti dengan MAC asli kugisaki saat mengerjakan Soal 6 (ip link show eth0)
-    hardware ethernet 02:42:0a:44:03:99;
+    hardware ethernet 02:42:97:3f:1c:00;
     fixed-address 10.68.3.99;
     option routers 10.68.3.1;
     option broadcast-address 10.68.3.255;
     option domain-name-servers 10.68.1.2, 10.68.1.3;
-    option domain-search "K09.com";
+    option domain-search "k09.com";
 }
 EOF
 
