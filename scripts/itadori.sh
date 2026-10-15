@@ -11,9 +11,9 @@ killall udhcpc 2>/dev/null
 # Hapus alamat IP lama di eth0 agar request baru terlihat saat demo
 ip addr flush dev eth0
 
-# -c itadori mengirim Client ID (Option 61).
-# -H itadori mengirim hostname (Option 12) yang dipakai class pool1.
-udhcpc -i eth0 -c itadori -H itadori
+# BusyBox udhcpc pada image ini menggunakan -x untuk mengirim hostname DHCP
+# (Option 12); opsi ini dicocokkan oleh class pool1 di server tengen.
+udhcpc -i eth0 -x hostname:itadori
 
 echo ""
 echo "=== Verifikasi itadori ==="
