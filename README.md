@@ -568,51 +568,93 @@ Pengujian ini menunjukkan bahwa ketika DHCP Relay pada jichi berhenti, permintaa
 
 ## 10. Autostart Service dan Persistensi Pasca Reboot
 
-Seluruh konfigurasi jaringan, forwarding, iptables NAT, dan service dibuat persisten agar tetap aktif setelah node direstart.
+Pada node Docker di GNS3, paket dan perubahan yang dibuat di dalam filesystem container tidak selalu bertahan ketika node di-reset atau dibuat ulang. Karena itu, `systemctl enable` atau `update-rc.d` saja tidak cukup untuk memastikan DHCP Server dan DHCP Relay siap setelah node dijalankan kembali.
 
-Pada jichi:
-* Konfigurasi interface `eth0`–`eth4` pada `/etc/network/interfaces`
-* `net.ipv4.ip_forward = 1` pada `/etc/sysctl.conf`
-* Aturan NAT dan startup relay pada `/etc/rc.local`
-* Autostart service via `update-rc.d isc-dhcp-relay defaults`
+Solusi yang digunakan pada praktikum ini adalah mengatur **Start command** di konfigurasi node GNS3 agar script dari volume `/gns3volumes/root/` dijalankan setiap kali node mulai. Script tersebut memasang paket yang diperlukan, menulis ulang konfigurasi, lalu me-restart service. Dengan cara ini, layanan disiapkan kembali saat startup jika paket atau konfigurasi di dalam container hilang.
 
-Pada tengen:
-* Konfigurasi IP statis `10.68.4.10` dan gateway `10.68.4.1` pada `/etc/network/interfaces`
-* Autostart service via `update-rc.d isc-dhcp-server defaults`
+### Start command pada tengen
 
-Setelah dilakukan restart node di GNS3, status jichi diperiksa:
+Buka **Configure → Start command** pada node `tengen`, lalu isi dengan:
 
 ```bash
-service isc-dhcp-relay status
-ip -br a
-cat /proc/sys/net/ipv4/ip_forward
-iptables -t nat -L -v -n
+/bin/sh -c "/bin/bash /gns3volumes/root/tengen.sh; exec /bin/bash -i"
 ```
 
-**Nama file foto:** `images/soal10/jichi-autostart.png`
+Script `/gns3volumes/root/tengen.sh` mengatur IP statis `10.68.4.10/24`, memasang `isc-dhcp-server`, menulis konfigurasi DHCP untuk Soal 2, 4, 5, dan 6, kemudian menjalankan ulang service. Bagian `exec /bin/bash -i` menjaga shell container tetap berjalan setelah script selesai.
 
-![Status jichi setelah restart](images/soal10/jichi-autostart.png)
+**Nama file foto:** `images/soal10/tengen-start-command.png`
 
-Status tengen setelah restart:
+![Start command pada node tengen](images/soal10/tengen-start-command.png)
+
+Setelah menyimpan Start command, lakukan stop lalu start pada node `tengen`. Verifikasi paket, status service, dan IP:
 
 ```bash
+dpkg -s isc-dhcp-server | grep Status
 service isc-dhcp-server status
 ip addr show eth0
 ```
 
 **Nama file foto:** `images/soal10/tengen-autostart.png`
 
-![Status tengen setelah restart](images/soal10/tengen-autostart.png)
+![Status DHCP Server dan IP tengen setelah node dijalankan kembali](images/soal10/tengen-autostart.png)
 
-Verifikasi dari klien (contoh kugisaki):
+### Start command pada jichi
+
+Buka **Configure → Start command** pada node `jichi`, lalu isi dengan:
+
+```bash
+/bin/sh -c "/bin/bash /gns3volumes/root/jichi.sh; exec /bin/bash -i"
+```
+
+Script `/gns3volumes/root/jichi.sh` mengatur interface router, mengaktifkan IPv4 forwarding dan NAT, memasang `isc-dhcp-relay`, lalu menulis konfigurasi relay. Interface relay tetap menggunakan `eth2 eth3 eth4` dan server DHCP tetap `10.68.4.10`.
+
+**Nama file foto:** `images/soal10/jichi-start-command.png`
+
+![Start command pada node jichi](images/soal10/jichi-start-command.png)
+
+Setelah menyimpan Start command, lakukan stop lalu start pada node `jichi`. Verifikasi paket, konfigurasi, dan proses relay:
+
+```bash
+dpkg -s isc-dhcp-relay | grep Status
+cat /etc/default/isc-dhcp-relay
+service isc-dhcp-relay status
+ps aux | grep '[d]hcrelay'
+ip -br a
+cat /proc/sys/net/ipv4/ip_forward
+iptables -t nat -L POSTROUTING -n -v
+```
+
+Konfigurasi relay yang diharapkan mencakup:
+
+```text
+SERVERS="10.68.4.10"
+INTERFACES="eth2 eth3 eth4"
+OPTIONS=""
+```
+
+Proses `dhcrelay` harus muncul setelah node dimulai. Jika service belum aktif, periksa output script dan status service sebelum menguji client.
+
+**Nama file foto:** `images/soal10/jichi-autostart.png`
+
+![Status DHCP Relay, interface, forwarding, dan NAT pada jichi setelah node dijalankan kembali](images/soal10/jichi-autostart.png)
+
+### Verifikasi lease dari klien
+
+Setelah `tengen` dan `jichi` aktif, jalankan pada node `itadori`:
 
 ```sh
-udhcpc -i eth0
+killall udhcpc 2>/dev/null
+udhcpc -f -v -i eth0 -x hostname:itadori
+```
+
+Jika berhasil, output menampilkan lease yang diperoleh dari server `10.68.4.10`, misalnya `10.68.2.10` yang termasuk Pool 1. Setelah lease didapat, tekan `Ctrl+C`, lalu verifikasi alamatnya:
+
+```bash
 ip addr show eth0
 ```
 
-Klien tetap memperoleh lease yang valid sesuai kebijakan alokasi semula.
-
 **Nama file foto:** `images/soal10/client-renew.png`
 
-![Klien berhasil renew lease setelah reboot](images/soal10/client-renew.png)
+![Itadori memperoleh lease DHCP setelah tengen dan jichi dijalankan kembali](images/soal10/client-renew.png)
+
+**Catatan:** pendekatan ini menjalankan ulang script saat node mulai, bukan memasukkan paket ke dalam Docker image secara permanen. Script melakukan `apt-get update` dan memasang paket yang dibutuhkan, sehingga proses startup memerlukan akses ke repositori paket. Jika nantinya tersedia akses untuk membuat custom Docker image pada server GNS3 kampus, paket dapat dipasang langsung ke image agar tidak perlu diinstal ulang setiap kali startup.
