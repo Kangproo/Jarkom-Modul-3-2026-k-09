@@ -451,45 +451,57 @@ Hasil pemeriksaan memastikan seluruh alokasi IP sesuai kebijakan pool dan tidak 
 
 ## 8. Analisis Transaksi DHCP Melalui Packet Capture
 
-Pengujian dilakukan menggunakan klien `itadori` pada Network 2 (`10.68.2.0/24`). Itadori terhubung melalui interface `eth2` pada router `jichi`, sehingga field `giaddr` yang diharapkan pada paket yang diterima server adalah `10.68.2.1`.
+Pengujian aktual dilakukan dari klien `itadori` di Network 2 (`10.68.2.0/24`) dengan DHCP server `tengen` (`10.68.4.10`). Capture dijalankan pada `eth0` tengen, sementara `itadori` meminta lease baru menggunakan hostname DHCP `itadori`.
 
-Jalankan capture pada node `tengen` (`10.68.4.10`):
+### Perintah pengujian
 
+Pada `tengen`:
 ```bash
 tcpdump -i eth0 -n -vvv 'port 67 or port 68'
 ```
 
-Saat `tcpdump` menunggu paket, buka terminal `itadori` dan jalankan:
-
+Pada `itadori` (BusyBox `udhcpc`):
 ```sh
 killall udhcpc 2>/dev/null
 ip addr flush dev eth0
-udhcpc -i eth0 -x hostname:itadori
+udhcpc -f -v -i eth0 -x hostname:itadori
 ```
 
-`-x hostname:itadori` mengirim hostname DHCP (Option 12), yang dicocokkan oleh class `pool1` pada konfigurasi DHCP server. Opsi ini digunakan karena versi BusyBox `udhcpc` pada node Alpine tidak mendukung `-c` dan `-H`.
+Opsi `-x hostname:itadori` mengirim DHCP Host Name (Option 12), yang cocok dengan class `pool1` pada konfigurasi DHCP server.
 
-Jika transaksi berhasil, cari empat pesan berikut pada capture `tengen`:
-1. `DHCPDISCOVER`: request yang diteruskan relay; field `Gateway-IP`/`giaddr` diharapkan bernilai `10.68.2.1`.
-2. `DHCPOFFER`: server `tengen` (`10.68.4.10`) menawarkan alamat klien dari Pool 1, yaitu rentang `10.68.2.10`–`10.68.2.35`.
-3. `DHCPREQUEST`: klien meminta alamat yang ditawarkan; field `giaddr` tetap `10.68.2.1`.
-4. `DHCPACK`: server mengonfirmasi lease untuk alamat yang ditawarkan. IP tepatnya bisa berbeda selama masih berada dalam rentang Pool 1 dan tersedia.
+### Hasil capture yang berhasil
 
-Field `giaddr` adalah alamat interface relay yang menerima request dari subnet klien. Karena `itadori` berada di Network 2 yang terhubung ke `eth2` `jichi`, nilainya harus `10.68.2.1`. Jangan gunakan `kugisaki` untuk pengujian ini karena ia berada di Network 3 dan akan menghasilkan `giaddr` `10.68.3.1`.
+Capture menunjukkan keempat tahap DORA. Nilai yang terbaca pada output adalah:
 
-**Nama file foto:** `images/soal8/tcpdump-dora-giaddr.png`
+| Tahap | Bukti pada capture |
+| :--- | :--- |
+| DHCPDISCOVER | Paket diteruskan dari relay `10.68.4.1` ke server `10.68.4.10`; `Gateway-IP`/`giaddr` = `10.68.2.1`; hostname = `itadori`. |
+| DHCPOFFER | Server `10.68.4.10` menawarkan `10.68.2.10`; `giaddr` = `10.68.2.1`; lease time = `600` detik. |
+| DHCPREQUEST | Klien meminta kembali `10.68.2.10` dan mencantumkan Server Identifier `10.68.4.10`; `giaddr` = `10.68.2.1`. |
+| DHCPACK | Server mengonfirmasi lease `10.68.2.10`; `giaddr` = `10.68.2.1`; lease time = `600` detik. |
 
-![Packet capture DHCPDISCOVER, DHCPOFFER, dan DHCPREQUEST](images/soal8/tcpdump-dora-giaddr.png)
+MAC klien yang terlihat pada capture adalah `02:42:94:0f:6d:00`. Alamat yang ditawarkan (`10.68.2.10`) berada di rentang Pool 1 (`10.68.2.10`–`10.68.2.35`). Dengan demikian, pengujian membuktikan bahwa relay meneruskan request dari Network 2 dengan `giaddr` yang benar dan server menyelesaikan transaksi DORA.
 
-**Nama file foto:** `images/soal8/tcpdump-ack.png`
+**Catatan lease time:** capture menunjukkan `600` detik (10 menit). Nilai ini sesuai dengan `default-lease-time 600` global pada `dhcpd.conf`; pool Network 2 tidak menetapkan lease time khusus. Pengaturan lease 1800 dan 43200 detik yang dibahas pada Soal 5 berlaku untuk class di Network 3.
 
-![Packet capture DHCPACK](images/soal8/tcpdump-ack.png)
+Field `Gateway-IP` yang ditampilkan `tcpdump` adalah nilai `giaddr`. Karena `itadori` berada di Network 2 yang terhubung ke interface `eth2` jichi, nilainya harus `10.68.2.1`. Jika pengujian dilakukan dari `kugisaki` di Network 3, nilai yang diharapkan berbeda, yaitu `10.68.3.1`.
 
-Setelah capture, verifikasi bahwa alamat `itadori` berada di Pool 1:
+**Nama file foto:** `images/soal8/tcpdump-dora-part1.png`
+
+![Capture DHCPDISCOVER dan DHCPOFFER](images/soal8/tcpdump-dora-part1.png)
+
+**Nama file foto:** `images/soal8/tcpdump-dora-part2.png`
+
+![Capture DHCPREQUEST dan DHCPACK](images/soal8/tcpdump-dora-part2.png)
+
+Verifikasi akhir pada `itadori`:
 
 ```bash
 ip addr show eth0
+ip route show
 ```
+
+Alamat yang diharapkan pada hasil uji ini adalah `10.68.2.10/24` dengan gateway `10.68.2.1`.
 
 ---
 
