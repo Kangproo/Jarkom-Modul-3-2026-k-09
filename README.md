@@ -552,11 +552,11 @@ Pastikan service relay kembali aktif sebelum klien mencoba meminta IP lagi.
 Jalankan pada node `itadori`:
 
 ```sh
-udhcpc -i eth0 -H itadori
+udhcpc -f -v -i eth0 -x hostname:itadori
 ip addr show eth0
 ```
 
-Setelah relay aktif, itadori seharusnya kembali memperoleh alamat IP dinamis dari Pool 1, yaitu rentang `10.68.2.10`–`10.68.2.35`. Catat alamat yang benar-benar muncul pada hasil pengujian.
+Opsi `-x hostname:itadori` mengirim hostname DHCP (Option 12) dan digunakan karena BusyBox `udhcpc` pada node ini tidak mengenali opsi `-H`. Setelah relay aktif, itadori seharusnya kembali memperoleh alamat IP dinamis dari Pool 1, yaitu rentang `10.68.2.10`–`10.68.2.35`. Catat alamat yang benar-benar muncul pada hasil pengujian.
 
 **Nama file foto:** `images/soal9/relay-recovered.png`
 
