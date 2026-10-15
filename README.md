@@ -493,7 +493,7 @@ service isc-dhcp-relay stop
 service isc-dhcp-relay status
 ```
 
-Klien di Network 2 dipaksa meminta lease baru:
+Klien (contoh kugisaki) dipaksa meminta lease baru:
 
 ```sh
 killall udhcpc 2>/dev/null
