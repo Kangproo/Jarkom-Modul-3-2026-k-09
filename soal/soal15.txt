@@ -1,0 +1,79 @@
+================================================================
+PANDUAN PRAKTEK & DEMO: SOAL 15
+Topik: Weighted Load Balancing 3:1 pada geto
+================================================================
+
+[ TUJUAN SOAL ]
+1. Menjadikan Geto (10.68.4.2) load balancer API.
+2. Membagi request ke nanami dan todo dengan bobot 3:1.
+3. Menyediakan kirara sebagai server backup.
+4. Mengukur pembagian request secara langsung.
+
+----------------------------------------------------------------
+LANGKAH 1: KONFIGURASI NGINX GETO
+----------------------------------------------------------------
+Pastikan Nginx terpasang:
+nginx -v
+service nginx status
+
+Konfigurasi upstream pada /etc/nginx/sites-available/default:
+
+upstream k09_api_workers {
+    server 10.68.4.5:80 weight=3 max_fails=2 fail_timeout=5s;
+    server 10.68.4.6:80 weight=1 max_fails=2 fail_timeout=5s;
+    server 10.68.4.7:80 backup;
+}
+
+Konfigurasi lokasi API:
+
+location = /api {
+    proxy_pass http://k09_api_workers;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+}
+
+Saat Soal 17 dikerjakan, Geto kemudian ditambah konfigurasi
+real_ip_header untuk meneruskan IP asli client. Hal tersebut tidak
+mengubah pembagian bobot 3:1 pada upstream di atas.
+
+Validasi:
+nginx -t
+nginx -T 2>/dev/null | grep -A 5 'upstream k09_api_workers'
+
+----------------------------------------------------------------
+LANGKAH 2: UJI WEIGHTED LOAD BALANCING
+----------------------------------------------------------------
+Buka terminal Geto, jalankan 40 request:
+
+for i in $(seq 1 40); do
+    curl -sS --max-time 3 http://127.0.0.1/api
+    echo
+done | grep -o '"worker":"[^"]*"' | sort | uniq -c
+
+HASIL AKTUAL PENGUJIAN:
+  31 "worker":"nanami"
+   9 "worker":"todo"
+
+Perbandingan Nanami:Todo mendekati 3:1. Tidak ada kirara pada
+output karena kedua worker utama sedang aktif.
+
+----------------------------------------------------------------
+CARA DEMO KE ASISTEN (VERIFIKASI)
+----------------------------------------------------------------
+1. Di Geto, tunjukkan blok upstream Nginx.
+2. Tunjukkan baris weight=3 dan weight=1.
+3. Jalankan loop request dan kelompokkan nilai "worker".
+4. Jelaskan angka tidak wajib tepat 30:10; targetnya mendekati
+   75% Nanami dan 25% Todo selama kedua worker sehat.
+5. Kirara hanya disiapkan backup; uji failover ada di Soal 18.
+
+Screenshot: images/soal15/
+- 15-geto-weighted-load-balancing.png
+
+[ POIN PENJELASAN UNTUK DIUCAPKAN KE ASISTEN ]
+"Load balancer Geto memakai weighted round robin. Nanami kami beri
+weight 3 dan Todo weight 1, sehingga secara umum tiga bagian request
+ke Nanami dan satu bagian ke Todo. Dari 40 pengujian, hasilnya
+31 request ke Nanami dan 9 ke Todo, sesuai rasio yang diharapkan.
+Kirara tidak dipakai selama worker utama masih tersedia."

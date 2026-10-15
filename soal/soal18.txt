@@ -1,0 +1,102 @@
+================================================================
+PANDUAN PRAKTEK & DEMO: SOAL 18
+Topik: Failover API Worker Cadangan kirara
+================================================================
+
+[ TUJUAN SOAL ]
+1. Mengatur Nanami dan Todo sebagai worker utama API.
+2. Memakai kirara (10.68.4.7) sebagai backup.
+3. Menguji saat dua worker utama tidak tersedia.
+4. Memastikan request tetap HTTP 200 tanpa 502.
+5. Menghidupkan kembali worker utama setelah pengujian.
+
+----------------------------------------------------------------
+LANGKAH 1: CEK KONFIGURASI GETO
+----------------------------------------------------------------
+Di Geto, upstream API berada di konfigurasi Nginx:
+
+upstream k09_api_workers {
+    server 10.68.4.5:80 weight=3 max_fails=2 fail_timeout=5s;
+    server 10.68.4.6:80 weight=1 max_fails=2 fail_timeout=5s;
+    server 10.68.4.7:80 backup;
+}
+
+Verifikasi:
+nginx -T 2>/dev/null | grep -A 5 'upstream k09_api_workers'
+
+Pastikan Kirara dapat diakses sebelum mematikan worker utama:
+
+curl -i --max-time 5 http://10.68.4.7/api
+
+-> Diharapkan HTTP 200 dan worker kirara.
+
+----------------------------------------------------------------
+LANGKAH 2: SIMULASI GANGGUAN
+----------------------------------------------------------------
+HANYA hentikan Nginx pada dua worker utama.
+Jangan mematikan keseluruhan node GNS3 atau server database yaga.
+
+Di nanami:
+service nginx stop
+
+Di todo:
+service nginx stop
+
+Kirara tetap menyala.
+
+----------------------------------------------------------------
+LANGKAH 3: TEST FAILOVER DARI GETO
+----------------------------------------------------------------
+Di Geto:
+
+for i in $(seq 1 8); do
+    curl -sS --max-time 5 \
+        -w ' HTTP:%{http_code}\n' \
+        http://127.0.0.1/api
+done
+
+HASIL AKTUAL PENGUJIAN:
+- 8 request ditangani kirara.
+- 8 request memberikan HTTP 200.
+- Tidak terdapat HTTP 502.
+
+Alamat 127.0.0.1 yang terlihat sebagai client_ip pada tes langsung
+dari Geto adalah normal karena request dikirim ke localhost.
+
+----------------------------------------------------------------
+LANGKAH 4: PULIHKAN WORKER UTAMA (WAJIB)
+----------------------------------------------------------------
+Di nanami:
+service nginx start
+
+Di todo:
+service nginx start
+
+Di Geto, periksa ulang:
+
+for i in $(seq 1 12); do
+    curl -sS http://127.0.0.1/api
+    echo
+done | grep -o '"worker":"[^"]*"' | sort | uniq -c
+
+HASIL SETELAH PEMULIHAN:
+9 request nanami, 3 request todo. Kirara kembali menjadi backup.
+
+----------------------------------------------------------------
+CARA DEMO KE ASISTEN (VERIFIKASI)
+----------------------------------------------------------------
+1. Perlihatkan konfigurasi backup dan max_fails/fail_timeout.
+2. Hentikan Nginx pada nanami dan todo, bukan node.
+3. Jalankan 8 request dan tunjukkan semuanya ditangani kirara.
+4. Tunjukkan tidak ada HTTP 502.
+5. Hidupkan kembali Nginx kedua worker utama setelah demo.
+
+Screenshot: images/soal18/
+- 18-kirara-failover.png
+
+[ POIN PENJELASAN UNTUK DIUCAPKAN KE ASISTEN ]
+"Kirara ditetapkan sebagai server backup dalam upstream Geto.
+Ketika Nginx Nanami dan Todo dihentikan, request API dialihkan
+ke Kirara. Delapan request pengujian semuanya HTTP 200 dan
+tidak ada 502. Setelah kedua server utama dipulihkan,
+pembagian 3:1 ke Nanami dan Todo kembali berjalan."
