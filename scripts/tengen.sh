@@ -50,37 +50,27 @@ authoritative;
 # === SOAL 4: DHCP Class Network 2 (Divisi A) ===
 # Mendukung pencocokan via Client ID (Option 61) dan Hostname
 class "pool1" {
-    match if (option dhcp-client-identifier = "itadori") or
-             (substring(option dhcp-client-identifier, 1, 20) = "itadori") or
-             (option host-name = "itadori") or
-             (option dhcp-client-identifier = "fushiguro") or
-             (substring(option dhcp-client-identifier, 1, 20) = "fushiguro") or
-             (option host-name = "fushiguro");
+    match if (option host-name = "itadori") or
+             (option host-name = "fushiguro") or
+             (substring(hardware, 1, 6) = 02:42:94:0f:6d:00);
 }
 
 class "pool2" {
-    match if (option dhcp-client-identifier = "zenin") or
-             (substring(option dhcp-client-identifier, 1, 20) = "zenin") or
-             (option host-name = "zenin") or
-             (option dhcp-client-identifier = "okkotsu") or
-             (substring(option dhcp-client-identifier, 1, 20) = "okkotsu") or
-             (option host-name = "okkotsu");
+    match if (option host-name = "zenin") or
+             (option host-name = "okkotsu") or
+             (substring(hardware, 1, 6) = 02:42:c5:24:d7:00);
 }
 
 # === SOAL 5: DHCP Class Network 3 (Divisi B) ===
 class "short-lease" {
-    match if (option dhcp-client-identifier = "ino") or
-             (substring(option dhcp-client-identifier, 1, 20) = "ino") or
-             (option host-name = "ino") or
-             (option dhcp-client-identifier = "kusakabe") or
-             (substring(option dhcp-client-identifier, 1, 20) = "kusakabe") or
+    match if (option host-name = "ino") or
+             (substring(hardware, 1, 6) = 02:42:ae:72:7a:00) or
              (option host-name = "kusakabe");
 }
 
 class "long-lease" {
-    match if (option dhcp-client-identifier = "miwa") or
-             (substring(option dhcp-client-identifier, 1, 20) = "miwa") or
-             (option host-name = "miwa");
+    match if (option host-name = "miwa") or
+             (substring(hardware, 1, 6) = 02:42:eb:ee:d1:00);
 }
 
 # === SOAL 2: Subnet Network 4 (Lokal Data Center - tanpa pool dinamis) ===

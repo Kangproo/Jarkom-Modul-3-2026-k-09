@@ -26,17 +26,15 @@ authoritative;
 
 # DHCP Class untuk Network 2 (mencocokkan Client ID & Hostname)
 class "pool1" {
-    match if (option dhcp-client-identifier = "itadori") or
-             (option host-name = "itadori") or
-             (option dhcp-client-identifier = "fushiguro") or
-             (option host-name = "fushiguro");
+    match if (option host-name = "itadori") or
+             (option host-name = "fushiguro") or
+             (substring(hardware, 1, 6) = 02:42:94:0f:6d:00);
 }
 
 class "pool2" {
-    match if (option dhcp-client-identifier = "zenin") or
-             (option host-name = "zenin") or
-             (option dhcp-client-identifier = "okkotsu") or
-             (option host-name = "okkotsu");
+    match if (option host-name = "zenin") or
+             (option host-name = "okkotsu") or
+             (substring(hardware, 1, 6) = 02:42:c5:24:d7:00);
 }
 
 # Subnet 4 (Data Center)

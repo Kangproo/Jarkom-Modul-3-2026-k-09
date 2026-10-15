@@ -16,15 +16,14 @@ Tambahkan deklarasi class short/long lease pada dhcpd.conf:
 
 cat >> /etc/dhcp/dhcpd.conf << 'EOF'
 class "short-lease" {
-    match if (option dhcp-client-identifier = "ino") or
-             (option host-name = "ino") or
-             (option dhcp-client-identifier = "kusakabe") or
+    match if (option host-name = "ino") or
+             (substring(hardware, 1, 6) = 02:42:ae:72:7a:00) or
              (option host-name = "kusakabe");
 }
 
 class "long-lease" {
-    match if (option dhcp-client-identifier = "miwa") or
-             (option host-name = "miwa");
+    match if (option host-name = "miwa") or
+             (substring(hardware, 1, 6) = 02:42:eb:ee:d1:00);
 }
 EOF
 
