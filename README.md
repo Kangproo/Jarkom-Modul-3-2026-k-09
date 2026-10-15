@@ -326,19 +326,35 @@ subnet 10.68.3.0 netmask 255.255.255.0 {
 }
 ```
 
-Pemeriksaan konfigurasi lease time pada tengen:
+Eksekusi request dari klien Network 3:
 
-**Nama file foto:** `images/soal5/lease-config.png`
+Pada ino (short lease):
+```sh
+killall udhcpc 2>/dev/null
+udhcpc -i eth0
+```
 
-![Konfigurasi lease time Network 3](images/soal5/lease-config.png)
+**Nama file foto:** `images/soal5/ino-lease.png`
+
+![Verifikasi IP dan Lease Time ino](images/soal5/ino-lease.png)
+
+Pada miwa (long lease):
+```sh
+killall udhcpc 2>/dev/null
+udhcpc -i eth0
+```
+
+**Nama file foto:** `images/soal5/miwa-lease.png`
+
+![Verifikasi IP dan Lease Time miwa](images/soal5/miwa-lease.png)
 
 Verifikasi masa berlaku sewa pada `/var/lib/dhcp/dhcpd.leases` di tengen:
 
 ```bash
-grep -E "lease|starts|ends|client-hostname" /var/lib/dhcp/dhcpd.leases
+grep -E "lease|starts|ends|hardware" /var/lib/dhcp/dhcpd.leases
 ```
 
-Hasil menunjukkan selisih waktu `starts` dan `ends` tepat 1800 detik untuk ino/kusakabe dan 43200 detik untuk miwa.
+Hasil menunjukkan selisih waktu `starts` dan `ends` tepat 1800 detik (30 menit) untuk ino dan 43200 detik (12 jam) untuk miwa.
 
 **Nama file foto:** `images/soal5/lease-database.png`
 

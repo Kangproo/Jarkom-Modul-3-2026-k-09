@@ -12,9 +12,28 @@ Topik: Pengaturan Lease Time Berbeda pada Network 3 (Divisi B)
 LANGKAH 1: KONFIGURASI PADA tengen
 ----------------------------------------------------------------
 Buka terminal node: tengen
-Tambahkan deklarasi class short/long lease pada dhcpd.conf:
+Copy-paste konfigurasi berikut ke terminal tengen:
 
-cat >> /etc/dhcp/dhcpd.conf << 'EOF'
+cat > /etc/dhcp/dhcpd.conf << 'EOF'
+option domain-name "k09.com";
+option domain-name-servers 10.68.1.2, 10.68.1.3;
+default-lease-time 600;
+max-lease-time 7200;
+ddns-update-style none;
+authoritative;
+
+# === SOAL 4: Network 2 (Divisi A) ===
+class "pool1" {
+    match if (option host-name = "itadori") or
+             (substring(hardware, 1, 6) = 02:42:94:0f:6d:00);
+}
+
+class "pool2" {
+    match if (option host-name = "zenin") or
+             (substring(hardware, 1, 6) = 02:42:c5:24:d7:00);
+}
+
+# === SOAL 5: Network 3 (Divisi B) ===
 class "short-lease" {
     match if (option host-name = "ino") or
              (substring(hardware, 1, 6) = 02:42:ae:72:7a:00) or
@@ -25,11 +44,55 @@ class "long-lease" {
     match if (option host-name = "miwa") or
              (substring(hardware, 1, 6) = 02:42:eb:ee:d1:00);
 }
-EOF
 
-# Pada blok subnet 10.68.3.0 di dhcpd.conf, pasang pool-nya:
-# pool { allow members of "short-lease"; range 10.68.3.10 10.68.3.89; default-lease-time 1800; max-lease-time 1800; }
-# pool { allow members of "long-lease"; range 10.68.3.100 10.68.3.199; default-lease-time 43200; max-lease-time 43200; }
+# Subnet 4 (Local DC)
+subnet 10.68.4.0 netmask 255.255.255.0 {
+    option routers 10.68.4.1;
+    option broadcast-address 10.68.4.255;
+}
+
+# Subnet 2 (Divisi A)
+subnet 10.68.2.0 netmask 255.255.255.0 {
+    option routers 10.68.2.1;
+    option broadcast-address 10.68.2.255;
+    option domain-name-servers 10.68.1.2, 10.68.1.3;
+    option domain-search "k09.com";
+
+    pool {
+        allow members of "pool1";
+        range 10.68.2.10 10.68.2.35;
+    }
+
+    pool {
+        allow members of "pool2";
+        range 10.68.2.70 10.68.2.95;
+    }
+}
+
+# Subnet 3 (Divisi B)
+subnet 10.68.3.0 netmask 255.255.255.0 {
+    option routers 10.68.3.1;
+    option broadcast-address 10.68.3.255;
+    option domain-name-servers 10.68.1.2, 10.68.1.3;
+    option domain-search "k09.com";
+
+    # Short lease pool: 1800 detik (30 menit)
+    pool {
+        allow members of "short-lease";
+        range 10.68.3.10 10.68.3.89;
+        default-lease-time 1800;
+        max-lease-time 1800;
+    }
+
+    # Long lease pool: 43200 detik (12 jam)
+    pool {
+        allow members of "long-lease";
+        range 10.68.3.100 10.68.3.199;
+        default-lease-time 43200;
+        max-lease-time 43200;
+    }
+}
+EOF
 
 service isc-dhcp-server restart
 
@@ -48,14 +111,14 @@ Buka terminal klien masing-masing dan jalankan:
 LANGKAH 3: CARA DEMO KE ASISTEN (VERIFIKASI)
 ----------------------------------------------------------------
 1. Cek IP di klien:
-   - Di ino/kusakabe: ip addr show eth0 -> Harus dapat 10.68.3.10 - 10.68.3.89
-   - Di miwa:         ip addr show eth0 -> Harus dapat 10.68.3.100 - 10.68.3.199
+   - Di ino/kusakabe: ip addr show eth0 -> Harus dapat 10.68.3.10 - 10.68.3.89 (lease 1800s)
+   - Di miwa:         ip addr show eth0 -> Harus dapat 10.68.3.100 - 10.68.3.199 (lease 43200s)
 
 2. Cek masa sewa (lease time) di tengen:
-   cat /var/lib/dhcp/dhcpd.leases | grep -E "lease|starts|ends|client-hostname"
+   grep -E "lease|starts|ends|hardware" /var/lib/dhcp/dhcpd.leases
    -> Tunjukkan ke asisten:
-      - ino/kusakabe: selisih 'starts' dan 'ends' adalah 1800 detik (30 menit).
-      - miwa: selisih 'starts' dan 'ends' adalah 43200 detik (12 jam).
+      - ino (02:42:ae:72:7a:00): selisih 'starts' dan 'ends' adalah 1800 detik (30 menit).
+      - miwa (02:42:eb:ee:d1:00): selisih 'starts' dan 'ends' adalah 43200 detik (12 jam).
 
 3. Cek DNS resolver di salah satu klien:
    cat /etc/resolv.conf
